@@ -1,0 +1,44 @@
+# Archivos y directorios específicos de Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+db.sqlite3-journal  
+identifier.sqlite
+media/
+
+# Archivos de configuración locales (práctica recomendada)
+local_settings.py   
+settings_local.py   
+
+# Ignorar la carpeta de archivos recolectados estáticos
+staticfiles/
+
+# Ambiente virtual (por ejemplo, si usas virtualenv o venv)
+venv/
+.env/
+env/
+Pipfile
+Pipfile.lock
+
+# Dependencias de Python (puedes agregar más si usas otras herramientas)
+/lib/
+/include/
+/bin/
+/.local/
+
+# Archivos de configuración sensibles
+*.env
+*.ini
+*.conf
+
+# Archivos generados por IDEs y editores de texto
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos temporales
+*.swp
+.DS_Store
