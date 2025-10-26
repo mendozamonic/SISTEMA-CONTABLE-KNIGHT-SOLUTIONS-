@@ -12,28 +12,32 @@ media/
 local_settings.py   
 settings_local.py   
 
-# Ignorar la carpeta de archivos recolectados estáticos
+# Ignorar migraciones, excepto el __init__.py
+**/migrations/
+!**/migrations/__init__.py
+
+# Archivos de archivos recolectados estáticos
 staticfiles/
 
-# Ambiente virtual (por ejemplo, si usas virtualenv o venv)
+# Ambiente virtual
 venv/
 .env/
 env/
 Pipfile
 Pipfile.lock
 
-# Dependencias de Python (puedes agregar más si usas otras herramientas)
+# Dependencias de Python
 /lib/
 /include/
 /bin/
-/.local/
+/local/
 
 # Archivos de configuración sensibles
 *.env
 *.ini
 *.conf
 
-# Archivos generados por IDEs y editores de texto
+# Archivos generados por IDEs y editores
 .idea/
 .vscode/
 *.sublime-project
