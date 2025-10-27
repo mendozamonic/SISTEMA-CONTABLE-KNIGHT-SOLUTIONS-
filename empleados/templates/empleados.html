@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>
+<html lang="es">
   <head>
+    <meta charset="utf-8" />
     <title>Registro de empleados</title>
   </head>
   <body>
@@ -7,20 +9,44 @@
     <table id="tabla_empleados" class="display">
       <thead>
         <tr>
-            <!--Encabezados, no dinamicos-->
+          <!--Encabezados, no dinamicos-->
           <th>ID</th>
           <th>Nombre</th>
           <th>Cargo</th>
+          <th>Salario diario</th>
+          <th>Dias laborados por semana</th>
+          <th>Dias vacacion</th>
+          <th>Recargo vacacional</th>
+          <th>Dias aguinaldo anual</th>
+          <th>Eficiencia</th>
+          <th>Costo real ajustado</th>
+          <th>Salario bruto</th>
+          <th>Total deducciones</th>
+          <th>Pago liquido</th>
         </tr>
       </thead>
       <tbody>
-        {% for v in ventas %}
+        {% for empleado in empleados %}
         <tr>
-          <td>{{ empleado.id}}</td>
-          <td>{{ empleado.nombre}}</td>
-          <td>{{ empleado.cargo}}</td>
+          <td>{{ empleado.id }}</td>
+          <td>{{ empleado.nombre }}</td>
+          <td>{{ empleado.cargo }}</td>
+          <td>{{ empleado.salario_diario }}</td>
+          <td>{{ empleado.dias_laborados_semana }}</td>
+          <td>{{ empleado.dias_vacaciones_anual }}</td>
+          <td>{{ empleado.recargo_vacaciones }}</td>
+          <td>{{ empleado.dias_aguinaldo_anual }}</td>
+          <td>{{ empleado.eficiencia}}</td>
+          <td>{{ empleado.costo_real_ajustado }}</td>
+          <td>{{ empleado.salario_bruto_mensual_calculado }}</td>
+          <td>{{ empleado.total_deducciones_mensual }}</td>
+          <td>{{ empleado.pago_liquido_mensual }}</td>
         </tr>
-        {% endfor %%}
+        {% empty %}
+        <tr>
+          <td colspan="13">No hay empleados registrados</td>
+        </tr>
+        {% endfor %}
       </tbody>
     </table>
   </body>
