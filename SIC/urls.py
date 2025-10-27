@@ -19,4 +19,5 @@ from django.urls import path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('obtener_datos_empleados/', views.obtener_datos_empleados, name='obtener_datos_empleados'),
 ]
