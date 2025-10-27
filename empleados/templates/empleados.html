@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>Registro de empleados</title>
+  </head>
+  <body>
+    <!-- tabla_empleados: Tabla dinamica para empleados-->
+    <table id="tabla_empleados" class="display">
+      <thead>
+        <tr>
+            <!--Encabezados, no dinamicos-->
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Cargo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventas %}
+        <tr>
+          <td>{{ empleado.id}}</td>
+          <td>{{ empleado.nombre}}</td>
+          <td>{{ empleado.cargo}}</td>
+        </tr>
+        {% endfor %%}
+      </tbody>
+    </table>
+  </body>
+</html>
