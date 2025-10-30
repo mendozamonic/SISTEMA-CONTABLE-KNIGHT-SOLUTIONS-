@@ -6,6 +6,9 @@ from django.db.models import Sum
 
 
 # --- PERÍODO CONTABLE ---
+from django.core.exceptions import ValidationError
+import calendar
+
 class PeriodoContable(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     inicio = models.DateField()
@@ -17,17 +20,31 @@ class PeriodoContable(models.Model):
 
     def clean(self):
         super().clean()
+
+        # ✅ Verificar que ambas fechas existan antes de comparar
+        if not self.inicio or not self.fin:
+            return  # Si faltan datos, no validar aún (el form lo manejará)
+
+        # Validar orden de fechas
         if self.fin < self.inicio:
             raise ValidationError("La fecha de fin no puede ser anterior a la de inicio.")
+
+        # Validar que inicio sea el primer día del mes
         if self.inicio.day != 1:
             raise ValidationError("La fecha de inicio debe ser el primer día del mes (día 1).")
 
+        # Validar que fin sea el último día del mismo mes
         num_dias_mes = calendar.monthrange(self.inicio.year, self.inicio.month)[1]
-        if (self.fin.year != self.inicio.year or
-            self.fin.month != self.inicio.month or
-            self.fin.day != num_dias_mes):
-            raise ValidationError(f"La fecha de fin debe ser el último día del mes ({num_dias_mes}/{self.inicio.month}/{self.inicio.year}).")
+        if (
+            self.fin.year != self.inicio.year
+            or self.fin.month != self.inicio.month
+            or self.fin.day != num_dias_mes
+        ):
+            raise ValidationError(
+                f"La fecha de fin debe ser el último día del mes ({num_dias_mes}/{self.inicio.month}/{self.inicio.year})."
+            )
 
+        # Validar solapamiento con otros períodos
         qs = PeriodoContable.objects.filter(inicio__lte=self.fin, fin__gte=self.inicio)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
@@ -48,6 +65,10 @@ class Cuenta(models.Model):
     codigo = models.CharField(max_length=20, unique=True)
     nombre = models.CharField(max_length=255)
     tipo_cuenta = models.CharField(max_length=3, choices=TipoCuenta.choices)
+    es_imputable = models.BooleanField(
+        default=True,
+        help_text="Indica si esta cuenta puede recibir asientos (True) o si es una cuenta de grupo (False)."
+    )
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
@@ -55,15 +76,11 @@ class Cuenta(models.Model):
 
 # --- ASIENTO CONTABLE ---
 class AsientoContable(models.Model):
-    class TipoAsiento(models.TextChoices):
-        DIARIO = 'DIA', 'Diario'
-        AJUSTE = 'AJU', 'Ajuste'
-        CIERRE = 'CIE', 'Cierre'
+
 
     periodo = models.ForeignKey(PeriodoContable, on_delete=models.PROTECT, related_name="asientos")
     fecha = models.DateField()
     concepto = models.TextField()
-    tipo_asiento = models.CharField(max_length=3, choices=TipoAsiento.choices, default=TipoAsiento.DIARIO)
     proyecto_relacionado = models.ForeignKey(
         'costos.Proyecto',
         on_delete=models.SET_NULL,

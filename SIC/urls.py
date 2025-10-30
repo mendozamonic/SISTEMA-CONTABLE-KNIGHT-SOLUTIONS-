@@ -22,6 +22,15 @@ from libromayor import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.catalogo_cuentas_view, name='catalogo_cuentas'),
+    path('transacciones/', views.crear_asiento_contable_view, name='transacciones'),
+    path('cuentas_por_tipo/', views.cuentas_por_tipo, name='cuentas_por_tipo'),
+
+    path('periodos/', views.lista_periodos_view, name='periodo_contable'),
+    path('periodos/nuevo/', views.crear_periodo_view, name='crear_periodo'),
+    path('periodos/<int:pk>/editar/', views.editar_periodo_view, name='editar_periodo'),
+    path('periodos/<int:pk>/eliminar/', views.eliminar_periodo_view, name='eliminar_periodo'),
+    path('periodos/<int:pk>/cerrar/', views.cerrar_periodo_view, name='cerrar_periodo'),
+
 ]
 
 

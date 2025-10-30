@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'gestion_ucp',
 
     'django_extensions',
+    'widget_tweaks',
+
 
 ]
 
