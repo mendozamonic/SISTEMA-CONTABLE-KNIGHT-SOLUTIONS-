@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h3 class="text-center fw-bold">Knight Solutions S.A. de C.V.</h3>
+  <h4 class="text-center mb-2">LIBRO MAYOR</h4>
+
+  <form method="get" class="mb-4">
+    <div class="row justify-content-center">
+      <div class="col-md-4">
+        <select name="periodo_id" class="form-select" onchange="this.form.submit()">
+          <option value="">-- Seleccione un período --</option>
+          {% for p in periodos %}
+            <option value="{{ p.id }}" {% if p.id|stringformat:'s' == periodo_id %}selected{% endif %}>{{ p.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
+
+  {% if cuentas_mayor %}
+    {% for tipo, cuentas in cuentas_mayor.items %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header bg-primary text-white fw-bold">{{ tipo }}</div>
+      <table class="table table-sm table-bordered mb-0">
+        <thead class="table-light text-center">
+          <tr>
+            <th>Código</th><th>Cuenta</th><th>Saldo Inicial</th><th>Debe</th><th>Haber</th><th>Saldo Deudor</th><th>Saldo Acreedor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cuentas %}
+          <tr>
+            <td>{{ c.codigo }}</td>
+            <td>{{ c.nombre }}</td>
+            <td class="text-end">${{ c.saldo_inicial|floatformat:2 }}</td>
+            <td class="text-end text-success">${{ c.debe|floatformat:2 }}</td>
+            <td class="text-end text-danger">${{ c.haber|floatformat:2 }}</td>
+            <td class="text-end">{{ c.saldo_deudor|floatformat:2 }}</td>
+            <td class="text-end">{{ c.saldo_acreedor|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+
+    <div class="alert alert-info text-end fw-bold">
+      TOTAL GLOBAL — Debe: ${{ total_global.debe|floatformat:2 }} | Haber: ${{ total_global.haber|floatformat:2 }}
+    </div>
+  {% elif periodo_id %}
+    <div class="alert alert-warning text-center">No hay movimientos en este período.</div>
+  {% else %}
+    <div class="alert alert-info text-center">Seleccione un período contable para ver el Libro Mayor.</div>
+  {% endif %}
+</div>
+{% endblock %}

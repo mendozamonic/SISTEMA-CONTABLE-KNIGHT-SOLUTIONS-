@@ -35,7 +35,7 @@
 
                 <!-- Menú Libro Mayor -->
                 <li class="nav-item">
-                    <a href=" " class="nav-link text-white">
+                    <a href="{% url 'libro_mayor' %} " class="nav-link text-white">
                         Libro Mayor
                     </a>
                 </li>
@@ -47,17 +47,17 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark">
                         <li>
-                            <a class="dropdown-item" href=" ">
+                            <a class="dropdown-item" href="{% url 'estado_resultados' %} ">
                                 Estado de Resultados
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href=" ">
+                            <a class="dropdown-item" href="{% url 'cambio_patrimonial' %} ">
                                 Cambio Patrimonial
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href=" ">
+                            <a class="dropdown-item" href="{% url 'balance_general' %} ">
                                 Balance General
                             </a>
                         </li>

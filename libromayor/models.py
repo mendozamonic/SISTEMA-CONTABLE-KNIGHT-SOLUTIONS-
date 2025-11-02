@@ -76,11 +76,15 @@ class Cuenta(models.Model):
 
 # --- ASIENTO CONTABLE ---
 class AsientoContable(models.Model):
-
+    TIPO_ASIENTO = [
+    ('DIARIO', 'Asiento Diario'),
+    ('CIERRE', 'Asiento de Cierre'),
+]
 
     periodo = models.ForeignKey(PeriodoContable, on_delete=models.PROTECT, related_name="asientos")
     fecha = models.DateField()
     concepto = models.TextField()
+    tipo = models.CharField(max_length=10, choices=TIPO_ASIENTO, default='DIARIO')  # 👈 nuevo
     proyecto_relacionado = models.ForeignKey(
         'costos.Proyecto',
         on_delete=models.SET_NULL,
@@ -126,16 +130,25 @@ class DetalleAsiento(models.Model):
 class SaldoCuenta(models.Model):
     cuenta = models.ForeignKey(Cuenta, on_delete=models.CASCADE)
     periodo = models.ForeignKey(PeriodoContable, on_delete=models.CASCADE)
-    saldo_inicial = models.DecimalField(max_digits=12, decimal_places=2)
-    total_debe_mes = models.DecimalField(max_digits=12, decimal_places=2)
-    total_haber_mes = models.DecimalField(max_digits=12, decimal_places=2)
-    saldo_final = models.DecimalField(max_digits=12, decimal_places=2)
+
+    # Saldos iniciales
+    saldo_inicial_debe = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    saldo_inicial_haber = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
+    # Movimientos del mes
+    total_debe_mes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    total_haber_mes = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
+    # Saldos finales
+    saldo_final_deudor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    saldo_final_acreedor = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal('0.00'))
 
     class Meta:
         unique_together = ('cuenta', 'periodo')
 
     def __str__(self):
         return f"Saldo {self.cuenta.nombre} - {self.periodo.nombre}"
+
 
 
 # --- ESTIMACIÓN DE COSTOS INDIRECTOS ---
