@@ -224,7 +224,26 @@ def editar_periodo_view(request, pk):
 
 
 
+from decimal import Decimal
+from datetime import timedelta
+import logging
+
+from django.db import transaction
+from django.db.models import Sum, F
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
+from .models import PeriodoContable, Cuenta, AsientoContable, DetalleAsiento, SaldoCuenta
+
+logger = logging.getLogger(__name__)
+
+
 def cerrar_periodo_view(request, pk):
+    """
+    Cierra el período contable `pk`: calcula utilidad, crea asientos de cierre,
+    traslada utilidad a utilidades acumuladas (si aplica), recalcula saldos finales,
+    crea el nuevo período (mes siguiente) y pasa saldos iniciales.
+    """
 
     periodo = get_object_or_404(PeriodoContable, pk=pk)
 
@@ -232,12 +251,13 @@ def cerrar_periodo_view(request, pk):
         messages.warning(request, f"⚠️ El período '{periodo.nombre}' ya está cerrado.")
         return redirect("periodos_contables")
 
+    # helper: recuperar cuenta por código
     def c(codigo):
         return Cuenta.objects.get(codigo=codigo)
 
     TC = Cuenta.TipoCuenta  # alias para leer mejor
 
-    # --- helper para sumar movimientos por tipo de cuenta ---
+    # helper para sumar movimientos por tipo de cuenta (debe/haber) para el periodo
     def suma_por_tipo(tipo):
         agg = DetalleAsiento.objects.filter(asiento__periodo=periodo, cuenta__tipo_cuenta=tipo) \
             .aggregate(debe=Sum("debe"), haber=Sum("haber"))
@@ -245,27 +265,28 @@ def cerrar_periodo_view(request, pk):
         haber = agg["haber"] or Decimal("0.00")
         return debe, haber
 
-    # Ejecutamos todo en una transacción para evitar inconsistencias parciales
     with transaction.atomic():
-        # === 1️⃣ Calcular utilidad ===
+        # === 1️⃣ Calcular utilidad del período (ingresos - costos - gastos) ===
         debe_ing, haber_ing = suma_por_tipo(TC.INGRESO)
         ingresos = (haber_ing - debe_ing)
 
         debe_cos, haber_cos = suma_por_tipo(TC.COSTO)
         costos = (debe_cos - haber_cos)
+
         debe_gas, haber_gas = suma_por_tipo(TC.GASTO)
         gastos = (debe_gas - haber_gas)
 
         utilidad = (ingresos - (costos + gastos)) or Decimal("0.00")
-        print(f"💰 Utilidad neta del período: {utilidad:.2f}")
+        logger.info("Utilidad neta del período %s: %s", periodo.nombre, utilidad)
 
-        # === 2️⃣ Crear asiento de cierre (cerrar cuentas de resultado) ===
+        # === 2️⃣ Preparar detalles para asiento de cierre (cerrar cuentas de resultado) ===
         detalles_cierre = []
+
         try:
             cuenta_utilidad = c("3.2.01.")
         except Cuenta.DoesNotExist:
             cuenta_utilidad = None
-            print("⚠️ No se encontró cuenta '3.2.01.' (UTILIDAD DEL EJERCICIO). Ajusta el código si es distinto.")
+            logger.warning("No se encontró cuenta '3.2.01.' (UTILIDAD DEL EJERCICIO).")
 
         cuentas_resultado = Cuenta.objects.filter(tipo_cuenta__in=[TC.INGRESO, TC.COSTO, TC.GASTO], es_imputable=True)
         for cuenta in cuentas_resultado:
@@ -275,22 +296,34 @@ def cerrar_periodo_view(request, pk):
             haber = movs["haber"] or Decimal("0.00")
 
             if cuenta.tipo_cuenta == TC.INGRESO:
-                # ingresos: saldo normal en el haber
+                # ingresos: saldo normal en el haber -> para cerrarla se DEBITA el ingreso
                 saldo = haber - debe
                 if saldo > 0:
-                    detalles_cierre.append(DetalleAsiento(asiento=None, cuenta=cuenta, debe=saldo))
+                    detalles_cierre.append(
+                        DetalleAsiento(asiento=None, cuenta=cuenta, debe=saldo, haber=Decimal("0.00"))
+                    )
             else:
-                # costos y gastos: saldo normal en el debe
+                # costos/gastos: saldo normal en el debe -> para cerrarla se ACREDITA
                 saldo = debe - haber
                 if saldo > 0:
-                    detalles_cierre.append(DetalleAsiento(asiento=None, cuenta=cuenta, haber=saldo))
+                    detalles_cierre.append(
+                        DetalleAsiento(asiento=None, cuenta=cuenta, debe=Decimal("0.00"), haber=saldo)
+                    )
 
+        # agregar la contrapartida en cuenta utilidad (si existe)
         if cuenta_utilidad:
             if utilidad > 0:
-                detalles_cierre.append(DetalleAsiento(asiento=None, cuenta=cuenta_utilidad, haber=utilidad))
+                # utilidad positiva: acreditar cuenta utilidad
+                detalles_cierre.append(
+                    DetalleAsiento(asiento=None, cuenta=cuenta_utilidad, debe=Decimal("0.00"), haber=utilidad)
+                )
             elif utilidad < 0:
-                detalles_cierre.append(DetalleAsiento(asiento=None, cuenta=cuenta_utilidad, debe=abs(utilidad)))
+                # pérdida: debitar cuenta utilidad
+                detalles_cierre.append(
+                    DetalleAsiento(asiento=None, cuenta=cuenta_utilidad, debe=abs(utilidad), haber=Decimal("0.00"))
+                )
 
+        # crear asiento de cierre si hay movimientos
         asiento_cierre = None
         if detalles_cierre:
             asiento_cierre = AsientoContable.objects.create(
@@ -302,14 +335,14 @@ def cerrar_periodo_view(request, pk):
             for d in detalles_cierre:
                 d.asiento = asiento_cierre
             DetalleAsiento.objects.bulk_create(detalles_cierre)
-        print("🧾 Cuentas de resultado cerradas y utilidad registrada (si hubo).")
+            logger.info("Asiento de cierre creado (%s) con %d detalles.", asiento_cierre.pk, len(detalles_cierre))
 
-        # === 3️⃣ Transferir utilidad a utilidades acumuladas (si aplica) ===
+        # === 3️⃣ Traslado de utilidad a utilidades acumuladas (si aplica) ===
         try:
             cuenta_acumulada = c("3.2.02.")
         except Cuenta.DoesNotExist:
             cuenta_acumulada = None
-            print("⚠️ No se encontró cuenta '3.2.02.' (UTILIDADES ACUMULADAS). Ajusta el código si es distinto.")
+            logger.warning("No se encontró cuenta '3.2.02.' (UTILIDADES ACUMULADAS).")
 
         if utilidad != Decimal("0.00") and cuenta_utilidad and cuenta_acumulada:
             asiento_traslado = AsientoContable.objects.create(
@@ -318,45 +351,42 @@ def cerrar_periodo_view(request, pk):
                 concepto="Traspaso de utilidad del ejercicio a utilidades acumuladas",
                 tipo="CIERRE"
             )
+
             if utilidad > 0:
-                # utilidad positiva: debitar cuenta de resultados, acreditar utilidades acumuladas
+                # debitar cuenta_utilidad, acreditar utilidades acumuladas
                 DetalleAsiento.objects.bulk_create([
-                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_utilidad, debe=utilidad),
-                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_acumulada, haber=utilidad),
+                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_utilidad, debe=utilidad, haber=Decimal("0.00")),
+                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_acumulada, debe=Decimal("0.00"), haber=utilidad),
                 ])
             else:
-                # pérdida: debitar utilidades acumuladas, acreditar cuenta de resultados
+                # pérdida: debitar utilidades acumuladas, acreditar cuenta_utilidad
                 amt = abs(utilidad)
                 DetalleAsiento.objects.bulk_create([
-                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_acumulada, debe=amt),
-                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_utilidad, haber=amt),
+                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_acumulada, debe=amt, haber=Decimal("0.00")),
+                    DetalleAsiento(asiento=asiento_traslado, cuenta=cuenta_utilidad, debe=Decimal("0.00"), haber=amt),
                 ])
-            print("🔄 Utilidad del ejercicio trasladada a utilidades acumuladas.")
+            logger.info("Traslado de utilidad realizado en asiento %s", asiento_traslado.pk)
 
-        # === 4️⃣ Recalcular saldos finales (corrigiendo por normalidad de la cuenta) ===
-        for cuenta in Cuenta.objects.filter(es_imputable=True):
+        # === 4️⃣ Recalcular y grabar saldos finales para cada cuenta imputable ===
+        imputables = Cuenta.objects.filter(es_imputable=True)
+        for cuenta in imputables:
             movs = DetalleAsiento.objects.filter(asiento__periodo=periodo, cuenta=cuenta) \
                 .aggregate(debe_total=Sum("debe"), haber_total=Sum("haber"))
             debe_mov = movs["debe_total"] or Decimal("0.00")
             haber_mov = movs["haber_total"] or Decimal("0.00")
 
-            # obtener saldo inicial (si existe) para este periodo antes de recalcular
+            # saldo inicial si existe
             saldo_prev = SaldoCuenta.objects.filter(cuenta=cuenta, periodo=periodo).first()
             init_debe = saldo_prev.saldo_inicial_debe if saldo_prev else Decimal("0.00")
             init_haber = saldo_prev.saldo_inicial_haber if saldo_prev else Decimal("0.00")
 
-            # Determinar si la cuenta es 'normalmente acreedora' o 'normalmente deudora'
-            try:
-                normal_acreedor = cuenta.tipo_cuenta in (TC.PASIVO, TC.PATRIMONIO, TC.INGRESO)
-            except Exception:
-                normal_acreedor = False
+            # determinar normalidad: acreedora = PASIVO / PATRIMONIO / INGRESO
+            normal_acreedor = cuenta.tipo_cuenta in (TC.PASIVO, TC.PATRIMONIO, TC.INGRESO)
 
             if normal_acreedor:
-                # para cuentas acreedoras (pasivo/patrimonio/ingreso): net = haber - debe
                 start_net = (init_haber - init_debe)
                 mov_net = (haber_mov - debe_mov)
                 total_net = start_net + mov_net
-
                 if total_net >= Decimal("0.00"):
                     saldo_final_acreedor = total_net
                     saldo_final_deudor = Decimal("0.00")
@@ -364,11 +394,9 @@ def cerrar_periodo_view(request, pk):
                     saldo_final_acreedor = Decimal("0.00")
                     saldo_final_deudor = abs(total_net)
             else:
-                # para cuentas deudoras (activo/gasto/costo): net = debe - haber
                 start_net = (init_debe - init_haber)
                 mov_net = (debe_mov - haber_mov)
                 total_net = start_net + mov_net
-
                 if total_net >= Decimal("0.00"):
                     saldo_final_deudor = total_net
                     saldo_final_acreedor = Decimal("0.00")
@@ -376,9 +404,9 @@ def cerrar_periodo_view(request, pk):
                     saldo_final_deudor = Decimal("0.00")
                     saldo_final_acreedor = abs(total_net)
 
-            # guardamos: los totales del mes son sólo los movimientos
             SaldoCuenta.objects.update_or_create(
-                cuenta=cuenta, periodo=periodo,
+                cuenta=cuenta,
+                periodo=periodo,
                 defaults={
                     "total_debe_mes": debe_mov,
                     "total_haber_mes": haber_mov,
@@ -386,17 +414,18 @@ def cerrar_periodo_view(request, pk):
                     "saldo_inicial_haber": init_haber,
                     "saldo_final_deudor": saldo_final_deudor,
                     "saldo_final_acreedor": saldo_final_acreedor,
-                },
+                }
             )
 
+        # marcar período como cerrado
         periodo.cerrado = True
         periodo.save(update_fields=["cerrado"])
-        print(f"✅ Período {periodo.nombre} cerrado correctamente.")
+        logger.info("Período %s cerrado.", periodo.nombre)
 
-        # === 5️⃣ Crear nuevo período (mes siguiente) ===
+        # === 5️⃣ Crear nuevo período: mes siguiente ===
         nuevo_inicio = periodo.fin + timedelta(days=1)
-        # cálculo estándar para fin de mes del nuevo periodo
         nuevo_fin = (nuevo_inicio.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
+
         periodo_nuevo, _ = PeriodoContable.objects.get_or_create(
             nombre=f"{nuevo_inicio.strftime('%B').capitalize()} {nuevo_inicio.year}",
             inicio=nuevo_inicio,
@@ -404,45 +433,29 @@ def cerrar_periodo_view(request, pk):
             defaults={"cerrado": False}
         )
 
-        # === 6️⃣ Pasar saldos iniciales al nuevo periodo (usar saldos finales ya calculados) ===
-        for saldo_ant in SaldoCuenta.objects.filter(periodo=periodo):
+        # === 6️⃣ Pasar saldos finales como saldos iniciales para el nuevo período ===
+        saldos_anteriores = SaldoCuenta.objects.filter(periodo=periodo)
+        for saldo_ant in saldos_anteriores:
+            # conservar exactamente los saldos finales: deudor -> inicial_debe, acreedor -> inicial_haber
             init_debe = saldo_ant.saldo_final_deudor or Decimal("0.00")
             init_haber = saldo_ant.saldo_final_acreedor or Decimal("0.00")
 
-            # Si la cuenta es del tipo PATRIMONIO o su código comienza por '3.1' (capital),
-            # aseguramos que el saldo inicial quede en la columna HABER.
-            asignar_por_codigo = False
-            try:
-                codigo = (saldo_ant.cuenta.codigo or "").strip()
-                if codigo.startswith("3.1.01.") or codigo.startswith("3.1."):
-                    asignar_por_codigo = True
-            except Exception:
-                codigo = ""
-
-            if asignar_por_codigo or saldo_ant.cuenta.tipo_cuenta == TC.PATRIMONIO:
-                # Para patrimonio dejamos init_debe a 0 y el init_haber con el valor acreedor
-                # Si el valor está actualmente en init_debe (porque el final quedó en deudor), invertimos.
-                if init_debe != Decimal("0.00") and init_haber == Decimal("0.00"):
-                    # convertir el deudor a haber (signo) para patrimonio: poner 0 en debe y mover a haber
-                    init_haber = init_debe
-                    init_debe = Decimal("0.00")
-
+            # Nota: NO invertimos los saldos por ser patrimonio. Si deseas una regla
+            # particular para códigos concretos, agrégala explícitamente aquí.
             SaldoCuenta.objects.update_or_create(
                 cuenta=saldo_ant.cuenta,
                 periodo=periodo_nuevo,
                 defaults={
                     "saldo_inicial_debe": init_debe,
                     "saldo_inicial_haber": init_haber,
-                    # los totales del mes nuevo empiezan en cero
                     "total_debe_mes": Decimal("0.00"),
                     "total_haber_mes": Decimal("0.00"),
-                    # y los saldos finales se inicializan igual al saldo inicial
                     "saldo_final_deudor": init_debe,
                     "saldo_final_acreedor": init_haber,
-                },
+                }
             )
 
-        # --- Prevención: si alguna cuenta quedó con final=0 en el nuevo periodo pero tiene inicial != 0, copiar inicial -> final ---
+        # Prevención: si final=0 pero inicial != 0, copiar inicial->final
         qs_fix = SaldoCuenta.objects.filter(
             periodo=periodo_nuevo,
             saldo_final_deudor=Decimal("0.00"),
@@ -457,7 +470,7 @@ def cerrar_periodo_view(request, pk):
                 saldo_final_deudor=F("saldo_inicial_debe"),
                 saldo_final_acreedor=F("saldo_inicial_haber")
             )
-            print(f"🔧 Prevención aplicada: {cnt} saldos del nuevo período actualizados (final <- inicial).")
+            logger.info("Prevención aplicada: %d saldos actualizados (final <- inicial).", cnt)
 
     messages.success(request, f"🎯 Período '{periodo.nombre}' cerrado. Nuevo período '{periodo_nuevo.nombre}' creado.")
     return redirect("periodo_contable")
