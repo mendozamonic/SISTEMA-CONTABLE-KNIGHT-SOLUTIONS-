@@ -5,7 +5,7 @@ from .models import AsientoContable, DetalleAsiento, Cuenta, PeriodoContable
 from decimal import Decimal
 import calendar
 from django.core.exceptions import ValidationError
-
+from .models import ParametrosGlobales
 
 class AsientoContableForm(forms.ModelForm):
 
@@ -193,3 +193,9 @@ class PeriodoContableForm(forms.ModelForm):
             raise forms.ValidationError('Ya existe un período contable abierto. Cierre el actual antes de crear uno nuevo.')
 
         return cleaned_data
+
+
+class ParametrosGlobalesForm(forms.ModelForm):
+    class Meta:
+        model = ParametrosGlobales
+        exclude = ['tasa_gastos_indirectos_por_hora']

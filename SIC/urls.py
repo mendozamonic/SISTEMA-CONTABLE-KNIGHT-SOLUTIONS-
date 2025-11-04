@@ -25,4 +25,9 @@ urlpatterns = [
     path('balance-general/', estados_views.balance_general_view, name='balance_general'),
     path('estado-resultados/', estados_views.estado_resultados_view, name='estado_resultados'),
     path('cambio-patrimonial/', estados_views.cambio_patrimonial_view, name='cambio_patrimonial'),
+
+    # ----- Parametros Globales -----
+    path('parametros/', libromayor_views.parametros_globales_view, name='parametros_globales'), 
+
+
 ]

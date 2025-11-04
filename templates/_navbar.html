@@ -16,7 +16,7 @@
                 <!-- Menú Inicio -->
                 <li class="nav-item">
                     <a href="{% url 'periodo_contable' %} " class="nav-link text-white">
-                        periodo_contable
+                       Periodos Contables
                     </a>
                 </li>
 
@@ -67,12 +67,12 @@
                 <!-- Menú Control de Costos -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Control de Costos
+                        Extras
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark">
                         <li>
-                            <a class="dropdown-item" href=" ">
-                                Costo de Mano de Obra
+                            <a class="dropdown-item" href=" {% url 'parametros_globales' %}" >
+                                Parametros Globales
                             </a>
                         </li>
                         <li>

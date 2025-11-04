@@ -1,14 +1,34 @@
 from datetime import date, timedelta
 from decimal import Decimal
+import logging
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Sum,F
+from django.db.models import Sum, F
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from .forms import AsientoContableForm, DetalleAsientoFormSet, PeriodoContableForm
-from .models import AsientoContable, DetalleAsiento, Cuenta, PeriodoContable, SaldoCuenta
+from .forms import (
+    AsientoContableForm,
+    DetalleAsientoFormSet,
+    PeriodoContableForm,
+    ParametrosGlobalesForm,
+)
+
+from .models import (
+    AsientoContable,
+    DetalleAsiento,
+    Cuenta,
+    PeriodoContable,
+    SaldoCuenta,
+    ParametrosGlobales,
+)
+
+# Logger para el módulo
+logger = logging.getLogger(__name__)
+
+
+logger = logging.getLogger(__name__)
 
 
 def catalogo_cuentas_view(request):
@@ -222,23 +242,8 @@ def editar_periodo_view(request, pk):
         return redirect('periodo_contable')
     return render(request, 'editar_periodo.html', {'form': form, 'periodo': periodo})
 
-
-
-from decimal import Decimal
-from datetime import timedelta
-import logging
-
-from django.db import transaction
-from django.db.models import Sum, F
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-
-from .models import PeriodoContable, Cuenta, AsientoContable, DetalleAsiento, SaldoCuenta
-
-logger = logging.getLogger(__name__)
-
-
 def cerrar_periodo_view(request, pk):
+
     """
     Cierra el período contable `pk`: calcula utilidad, crea asientos de cierre,
     traslada utilidad a utilidades acumuladas (si aplica), recalcula saldos finales,
@@ -474,3 +479,45 @@ def cerrar_periodo_view(request, pk):
 
     messages.success(request, f"🎯 Período '{periodo.nombre}' cerrado. Nuevo período '{periodo_nuevo.nombre}' creado.")
     return redirect("periodo_contable")
+
+
+def parametros_globales_view(request):
+    """
+    Vista singleton para editar y mostrar los parámetros globales del sistema.
+    Solo existe un registro (id=1), y se crea automáticamente si no existe.
+    """
+
+    try:
+        parametros, creado = ParametrosGlobales.objects.get_or_create(id=1)
+    except Exception as e:
+        logger.error("Error al obtener o crear los parámetros globales: %s", e)
+        messages.error(request, "Ocurrió un error al cargar los parámetros.")
+        return redirect('/')
+
+    if request.method == 'POST':
+        form = ParametrosGlobalesForm(request.POST, instance=parametros)
+        if form.is_valid():
+            parametros = form.save()
+
+            # 🔁 Recalcular automáticamente la tasa después de guardar
+            try:
+                parametros.calcular_y_guardar_tasa_indirectos(recalcular=True)
+                messages.success(request, "✅ Parámetros actualizados correctamente y tasa recalculada.")
+            except Exception as e:
+                logger.warning("Error al recalcular la tasa indirecta: %s", e)
+                messages.warning(request, "⚠️ Parámetros guardados, pero no se pudo recalcular la tasa indirecta.")
+
+            return redirect('parametros_globales')
+        else:
+            # 🔍 Mostrar errores en consola para depuración
+            logger.error("Errores en el formulario de parámetros: %s", form.errors.as_json())
+            messages.error(request, "❌ Hay errores en el formulario. Revísalo por favor.")
+    else:
+        form = ParametrosGlobalesForm(instance=parametros)
+
+    return render(request, 'parametros_globales.html', {
+        'form': form,
+        'parametros': parametros,
+    })
+
+

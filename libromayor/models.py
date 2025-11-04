@@ -183,7 +183,7 @@ class ParametrosGlobales(models.Model):
     )
     tasa_gastos_indirectos_por_hora = models.DecimalField(
         max_digits=10, decimal_places=4, default=Decimal('0.00'),
-        editable=False
+    editable=True  # <--- permitir mostrarlo
     )
     porcentaje_iva = models.DecimalField(
         max_digits=5, decimal_places=4, default=Decimal('0.13'), # Valor actual de El Salvador (13%)
