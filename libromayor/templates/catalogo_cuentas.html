@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    /* Clases para los grupos de cuentas (ACTIVO) */
+    .grupo-activo-1, .grupo-activo-1 td { background: #06281e; color: white; }
+    .grupo-activo-2, .grupo-activo-2 td { background: #0d503c; color: white; }
+    .grupo-activo-3, .grupo-activo-3 td { background: #13795b; color: white; }
+
+    /* Clases para los grupos de cuentas (PASIVO) */
+    .grupo-pasivo-1, .grupo-pasivo-1 td { background: #653208; color: white; }
+    .grupo-pasivo-2, .grupo-pasivo-2 td { background: #984c0c; color: white; }
+    .grupo-pasivo-3, .grupo-pasivo-3 td { background: #ca6510; color: white; }
+
+    /* Clases para los grupos de cuentas (PATRIMONIO) */
+    .grupo-patri-1, .grupo-patri-1 td { background: #2c0b0e; color: white; }
+    .grupo-patri-2, .grupo-patri-2 td { background: #58151c; color: white; }
+    .grupo-patri-3, .grupo-patri-3 td { background: #842029; color: white; }
+
+    /* Clases para los grupos de cuentas (RESULTADO DEUDOR) */
+    .grupo-res-deudor-1, .grupo-res-deudor-1 td { background: #290661; color: white; }
+    .grupo-res-deudor-2, .grupo-res-deudor-2 td { background: #3d0a91; color: white; }
+    .grupo-res-deudor-3, .grupo-res-deudor-3 td { background: #520dc2; color: white; }
+
+    /* Clases para los grupos de cuentas (RESULTADO ACREEDOR) */
+    .grupo-res-acreedor-1, .grupo-res-acreedor-1 td { background: #052c65; color: white; }
+    .grupo-res-acreedor-2, .grupo-res-acreedor-2 td { background: #084298; color: white; }
+    .grupo-res-acreedor-3, .grupo-res-acreedor-3 td { background: #0a58ca; color: white; }
+    
+    /* Clases para los grupos de cuentas (CIERRE) */
+    .grupo-cierre-1, .grupo-cierre-1 td { background: #032830; color: white; }
+    .grupo-cierre-2, .grupo-cierre-2 td { background: #055160; color: white; }
+    .grupo-cierre-3, .grupo-cierre-3 td { background: #087990; color: white; }
+
+    /* Clase para las filas de detalle (cuentas de movimiento) */
+    .fila-detalle {
+        background: #ffffff;
+        color: #212529;
+    }
+</style>
+
+
+<body>
+  <div class="container"><br><br><br>
+        
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+
+      <h2>Catalogo de Cuentas</h2><br><br>
+      <div class="table-responsive">
+        <table class="table table-striped table-sm">
+          <thead>
+            <tr>
+              <th scope="col">Codigo</th>
+              <th scope="col">Nombre de la Cuenta</th>
+              <th scope="col">Tipo de Cuenta</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            {% for item in cuentas_procesadas %}
+            
+                {% if item.es_grupo %}
+                    {% with nivel=item.nivel|default:0 %}
+                        <tr class="
+                            {% if item.cuenta.codigo|stringformat:"s"|slice:"1" == '1' %}
+                                {% if nivel == 0 %}grupo-activo-1{% elif nivel == 1 %}grupo-activo-2{% else %}grupo-activo-3{% endif %}
+                            {% elif item.cuenta.codigo|stringformat:"s"|slice:"1" == '2' %}
+                                {% if nivel == 0 %}grupo-pasivo-1{% elif nivel == 1 %}grupo-pasivo-2{% else %}grupo-pasivo-3{% endif %}
+                            {% elif item.cuenta.codigo|stringformat:"s"|slice:"1" == '3' %}
+                                {% if nivel == 0 %}grupo-patri-1{% elif nivel == 1 %}grupo-patri-2{% else %}grupo-patri-3{% endif %}
+                            {% elif item.cuenta.codigo|stringformat:"s"|slice:"1" == '4' %}
+                                {% if nivel == 0 %}grupo-res-deudor-1{% elif nivel == 1 %}grupo-res-deudor-2{% else %}grupo-res-deudor-3{% endif %}
+                            {% elif item.cuenta.codigo|stringformat:"s"|slice:"1" == '5' %}
+                                {% if nivel == 0 %}grupo-res-acreedor-1{% elif nivel == 1 %}grupo-res-acreedor-2{% else %}grupo-res-acreedor-3{% endif %}
+                            {% elif item.cuenta.codigo|stringformat:"s"|slice:"1" == '6' %}
+                                {% if nivel == 0 %}grupo-cierre-1{% elif nivel == 1 %}grupo-cierre-2{% else %}grupo-cierre-3{% endif %}
+                            {% endif %}
+                        ">
+                        
+                        <td>{{ item.cuenta.codigo }}</td>
+                        <td>{{ item.cuenta.nombre }}</td>
+                        <td></td>
+                    </tr>
+                    {% endwith %}
+
+                {% else %}
+                    <tr class="fila-detalle">
+                        <td>{{ item.cuenta.codigo }}</td>
+                        <td>{{ item.cuenta.nombre }}</td>
+                        <td>{{ item.cuenta.get_tipo_cuenta_display }}</td>
+                    </tr>
+                {% endif %}
+
+            {% endfor %}
+
+          </tbody>
+        </table>
+      </div>
+    </main>
+</div><br><br>
+</body>
+
+{% endblock %}

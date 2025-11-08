@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+<body class="bg-light">
+
+<div class="container">
+  <div class="py-5 text-center">
+    <h2>Gestión de Períodos Contables</h2>
+    <p class="lead">Administre la apertura, cierre y consulta de los períodos contables.</p>
+  </div>
+
+  <div class="container col-lg-9">
+
+    <!-- Mensajes -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}" role="alert">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- ESTADO ACTUAL -->
+    {% if ultimo_periodo is None %}
+      <div class="alert alert-info">
+        <p class="lead mb-1">Bienvenido 👋</p>
+        <p>Para comenzar a registrar transacciones, debe crear el primer período contable.</p>
+      </div>
+
+    {% elif ultimo_periodo.cerrado %}
+      <div class="alert alert-secondary">
+        <p class="lead mb-1">
+          El último período (<strong>{{ ultimo_periodo.nombre }}</strong>) está cerrado.
+        </p>
+        <p>Para continuar, debe abrir el siguiente período. Se arrastrarán los saldos finales como saldos iniciales.</p>
+      </div>
+
+    {% else %}
+      <div class="alert alert-warning">
+        Ya existe un período abierto (<strong>{{ ultimo_periodo.nombre }}</strong>).
+        Puede <a href="{% url 'crear_asiento_contable' %}" class="alert-link">crear un asiento contable</a>.
+      </div>
+    {% endif %}
+
+    <!-- BOTÓN MANUAL PARA CREAR NUEVO PERÍODO -->
+    {% if not propuesta %}
+      <div class="text-end mb-4">
+        <a href="{% url 'crear_periodo' %}" class="btn btn-primary">
+          <i class="bi bi-plus-circle"></i> Crear nuevo período
+        </a>
+      </div>
+    {% endif %}
+
+    <!-- FORMULARIO DE PROPUESTA AUTOMÁTICA -->
+    {% if propuesta %}
+      <hr class="my-4">
+      <h4 class="mb-3">Confirmar Nuevo Período</h4>
+      
+      <form method="POST">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="nombre" class="form-label">Nombre del Período</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" value="{{ propuesta.nombre }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="inicio" class="form-label">Inicio</label>
+            <input type="date" class="form-control" id="inicio" name="inicio" value="{{ propuesta.inicio }}" required>
+          </div>
+          <div class="col-md-3">
+            <label for="fin" class="form-label">Fin</label>
+            <input type="date" class="form-control" id="fin" name="fin" value="{{ propuesta.fin }}" required>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <button class="w-100 btn btn-primary btn-lg" type="submit">
+          {% if ultimo_periodo is None %}
+            Crear Primer Período
+          {% else %}
+            Abrir Siguiente Período y Arrastrar Saldos
+          {% endif %}
+        </button>
+      </form>
+    {% endif %}
+
+    <!-- LISTADO DE PERÍODOS -->
+    <hr class="my-5">
+    <h4 class="mb-3">Historial de Períodos Contables</h4>
+
+    {% if periodos_abiertos or periodos_cerrados %}
+      {% if periodos_abiertos %}
+        <div class="card mb-4 border-success">
+          <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <span>Períodos Abiertos</span>
+            <a href="{% url 'crear_periodo' %}" class="btn btn-light btn-sm">
+              + Nuevo
+            </a>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for p in periodos_abiertos %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ p.nombre }}</strong><br>
+                  <small>{{ p.inicio }} → {{ p.fin }}</small>
+                </div>
+              <div>
+                {% if not p.cerrado %}
+                    <a href="{% url 'cerrar_periodo' p.id %}" class="btn btn-success btn-sm"
+                      onclick="return confirm('¿Está seguro de que desea cerrar este período? Esta acción no se puede deshacer.');">
+                      Cerrar
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'editar_periodo' p.id %}" class="btn btn-warning btn-sm">Editar</a>
+              </div>
+
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if periodos_cerrados %}
+        <div class="card border-secondary">
+          <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <span>Períodos Cerrados</span>
+            <a href="{% url 'crear_periodo' %}" class="btn btn-light btn-sm">
+              + Nuevo
+            </a>
+          </div>
+          <ul class="list-group list-group-flush">
+            {% for p in periodos_cerrados %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ p.nombre }}</strong><br>
+                  <small>{{ p.inicio }} → {{ p.fin }}</small>
+                </div>
+                <div>
+                  <a href="{% url 'editar_periodo' p.id %}" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="text-muted">No hay períodos contables registrados.</p>
+    {% endif %}
+  </div>
+</div>
+
+</body>
+{% endblock %}

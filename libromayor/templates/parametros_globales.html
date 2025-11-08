@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Parámetros Globales{% endblock title %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center mt-4 mb-5">
+  <div class="card shadow-lg border-0 col-lg-8 col-md-10">
+    <div class="card-header bg-success text-white text-center">
+      <h4 class="mb-0">
+        <i class="bi bi-gear-fill me-2"></i> Parámetros Globales del Sistema
+      </h4>
+    </div>
+
+    <div class="card-body p-4">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} mt-2 text-center">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- 🔍 Mostrar errores generales del formulario -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger text-center">
+          {% for error in form.non_field_errors %}
+            {{ error }}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- 🧾 APORTACIONES -->
+        <fieldset class="border p-3 rounded mb-4 shadow-sm">
+          <legend class="float-none w-auto px-2 h5 text-success">
+            <i class="bi bi-person-badge-fill me-1"></i> Aportaciones
+          </legend>
+
+          <div class="row g-3 justify-content-center">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Patronal seguro social</label>
+              {{ form.patronal_seguro_social }}
+              {% if form.patronal_seguro_social.errors %}
+                <div class="text-danger small">{{ form.patronal_seguro_social.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Patronal AFP</label>
+              {{ form.patronal_afp }}
+              {% if form.patronal_afp.errors %}
+                <div class="text-danger small">{{ form.patronal_afp.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Empleado seguro social</label>
+              {{ form.empleado_seguro_social }}
+              {% if form.empleado_seguro_social.errors %}
+                <div class="text-danger small">{{ form.empleado_seguro_social.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Empleado AFP</label>
+              {{ form.empleado_afp }}
+              {% if form.empleado_afp.errors %}
+                <div class="text-danger small">{{ form.empleado_afp.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- 🕒 JORNADA LABORAL -->
+        <fieldset class="border p-3 rounded mb-4 shadow-sm">
+          <legend class="float-none w-auto px-2 h5 text-success">
+            <i class="bi bi-clock-fill me-1"></i> Jornada Laboral
+          </legend>
+
+          <div class="row g-3 justify-content-center">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Días laborados por semana</label>
+              {{ form.dias_laborados_semana }}
+              {% if form.dias_laborados_semana.errors %}
+                <div class="text-danger small">{{ form.dias_laborados_semana.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Horas laboradas diarias</label>
+              {{ form.horas_laboradas_diarias }}
+              {% if form.horas_laboradas_diarias.errors %}
+                <div class="text-danger small">{{ form.horas_laboradas_diarias.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Recargo de vacaciones</label>
+              {{ form.recargo_vacaciones }}
+              {% if form.recargo_vacaciones.errors %}
+                <div class="text-danger small">{{ form.recargo_vacaciones.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Eficiencia base</label>
+              {{ form.eficiencia_base }}
+              {% if form.eficiencia_base.errors %}
+                <div class="text-danger small">{{ form.eficiencia_base.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- 💰 COSTOS E IMPUESTOS -->
+        <fieldset class="border p-3 rounded mb-4 shadow-sm">
+          <legend class="float-none w-auto px-2 h5 text-success">
+            <i class="bi bi-cash-coin me-1"></i> Costos e Impuestos
+          </legend>
+
+          <div class="row g-3 justify-content-center">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Horas directas estimadas mensual</label>
+              {{ form.horas_directas_estimadas_mensual }}
+              {% if form.horas_directas_estimadas_mensual.errors %}
+                <div class="text-danger small">{{ form.horas_directas_estimadas_mensual.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Porcentaje IVA</label>
+              <div class="input-group">
+                {{ form.porcentaje_iva }}
+                <span class="input-group-text">Ej: 0.13 = 13%</span>
+              </div>
+              {% if form.porcentaje_iva.errors %}
+                <div class="text-danger small">{{ form.porcentaje_iva.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Tasa de gastos indirectos por hora</label>
+              <input type="text" class="form-control" 
+                     value="{{ form.instance.tasa_gastos_indirectos_por_hora }}" readonly>
+              <small class="form-text text-muted">Campo calculado automáticamente</small>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- BOTONES -->
+        <div class="d-flex justify-content-center gap-3 mt-4">
+          <button type="submit" class="btn btn-success btn-lg px-4">
+            <i class="bi bi-save me-1"></i> Guardar Cambios
+          </button>
+          <a href="/" class="btn btn-secondary btn-lg px-4">
+            <i class="bi bi-arrow-left-circle me-1"></i> Volver
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

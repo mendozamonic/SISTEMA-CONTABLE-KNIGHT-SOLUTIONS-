@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  body { font-family: "Segoe UI", sans-serif; }
+  .titulo-empresa { text-align: center; font-weight: bold; font-size: 1.5rem; }
+  .titulo-estado { text-align: center; font-size: 1.2rem; margin-top: -5px; }
+  .subtitulo-periodo { text-align: center; font-size: 0.95rem; color: #555; margin-bottom: 25px; }
+  .table { width: 70%; margin: auto; }
+  .table td { padding: 6px 12px; }
+  .seccion { background: #e8f5e9; font-weight: bold; }
+  .negativo { color: #b71c1c; }
+  .positivo { color: #1b5e20; }
+  .fw-bold { font-weight: bold; }
+</style>
+
+<div class="container mt-4">
+  <div class="titulo-empresa">Knight Solutions S.A. de C.V.</div>
+  <div class="titulo-estado">Estado de Resultados</div>
+{% if periodo_id %}
+  {% for p in periodos %}
+    {% if p.id|stringformat:'s' == periodo_id %}
+      <div class="subtitulo-periodo">
+        {{ p.nombre }}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+  <form method="get" class="mb-4 text-center">
+    <label class="form-label me-2">Seleccione un período contable:</label>
+    <select name="periodo_id" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+      <option value="">-- Seleccione --</option>
+      {% for p in periodos %}
+        <option value="{{ p.id }}" {% if p.id|stringformat:'s' == periodo_id %}selected{% endif %}>{{ p.nombre }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if periodo_id %}
+  <table class="table table-bordered table-sm">
+    <tbody>
+      <tr><td><b>VENTAS NETAS</b></td><td class="text-end">${{ ventas|floatformat:2 }}</td></tr>
+      <tr><td>(-) Costo de Ventas</td><td class="text-end">${{ costo_ventas|floatformat:2 }}</td></tr>
+      <tr class="seccion"><td>(=) UTILIDAD BRUTA</td><td class="text-end fw-bold positivo">${{ utilidad_bruta|floatformat:2 }}</td></tr>
+
+      <tr><td>(-) Gastos Administrativos</td><td class="text-end">${{ gastos_admin|floatformat:2 }}</td></tr>
+      <tr class="seccion"><td>(=) UTILIDAD DE OPERACIÓN</td><td class="text-end fw-bold positivo">${{ utilidad_operacion|floatformat:2 }}</td></tr>
+
+      <tr><td>(+) Otros Productos</td><td class="text-end">${{ otros_prod|floatformat:2 }}</td></tr>
+      <tr><td>(-) Otros Costos y Gastos</td><td class="text-end">${{ otros_gastos|floatformat:2 }}</td></tr>
+      <tr class="seccion"><td>(=) UTILIDAD ANTES DE IMPUESTO</td><td class="text-end fw-bold positivo">${{ utilidad_antes_imp|floatformat:2 }}</td></tr>
+
+      <tr><td>(-) Impuesto 30%</td><td class="text-end">${{ impuesto|floatformat:2 }}</td></tr>
+      <tr class="seccion"><td>(=) UTILIDAD NETA</td><td class="text-end fw-bold positivo">${{ utilidad_neta|floatformat:2 }}</td></tr>
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert alert-info text-center mt-3">Seleccione un período contable para ver el estado de resultados.</div>
+  {% endif %}
+</div>
+{% endblock %}

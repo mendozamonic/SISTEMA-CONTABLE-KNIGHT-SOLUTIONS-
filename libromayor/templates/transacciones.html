@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<body class="bg-light">
+
+  <div class="container">
+    <div class="py-5 text-center">
+      <h2>Registrar Asiento Contable</h2>
+      <p class="lead">Ingrese la información del asiento y sus movimientos (partida doble).</p>
+    </div>
+
+    <div class="container col-lg-10">
+      
+      <!-- Contenedor para mensajes de éxito/error -->
+      <div id="form-message-container">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% else %}alert-success{% endif %}" role="alert">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% if asiento_form.non_field_errors %}
+            <div class="alert alert-danger">{{ asiento_form.non_field_errors }}</div>
+        {% endif %}
+        {% if detalle_formset.non_field_errors %}
+            <div class="alert alert-danger">{{ detalle_formset.non_field_errors }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Formulario principal -->
+      <form class="needs-validation"  method="post" id="asiento-form">
+        {% csrf_token %}
+        
+        <h4 class="mb-3">Datos del Asiento</h4>
+        <div class="row g-3">
+          
+          <div class="col-md-6">
+            <label for="{{ asiento_form.periodo.id_for_label }}" class="form-label">Período</label>
+            {{ asiento_form.periodo }}
+            <div class="invalid-feedback">{{ asiento_form.periodo.errors }}</div>
+          </div>
+
+          <div class="col-md-6">
+            <label for="{{ asiento_form.fecha.id_for_label }}" class="form-label">Fecha del Asiento</label>
+            {{ asiento_form.fecha }}
+            <div class="invalid-feedback">{{ asiento_form.fecha.errors }}</div>
+          </div>
+          
+          <div class="col-12">
+            <label for="{{ asiento_form.concepto.id_for_label }}" class="form-label">Concepto / Descripción</label>
+            {{ asiento_form.concepto }}
+            <div class="invalid-feedback">{{ asiento_form.concepto.errors }}</div>
+          </div>
+          
+        </div>
+
+        <hr class="my-4">
+
+        <h4 class="mb-3">Movimientos del Asiento (Partida Doble)</h4>
+        
+        {{ detalle_formset.management_form }}
+
+        <div id="detalle-form-list">
+          {% for form in detalle_formset %}
+            <div class="row g-3 detalle-form mb-2 border-bottom pb-2">
+              
+              {% if form.non_field_errors %}
+                  <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+              {% endif %}
+
+              {{ form.id }}
+              {% if form.DELETE %} {{ form.DELETE }} {% endif %}
+
+              <!-- ✅ Tipo de cuenta (corregido y conectado con Django) -->
+              <div class="col-md-3">
+                <label for="{{ form.tipo_cuenta.id_for_label }}" class="form-label">Tipo de cuenta</label>
+                {{ form.tipo_cuenta }}
+                <div class="invalid-feedback">{{ form.tipo_cuenta.errors }}</div>
+              </div>
+
+              <!-- ✅ Campo cuenta (filtrado dinámicamente) -->
+              <div class="col-md-4">
+                <label for="{{ form.cuenta.id_for_label }}" class="form-label">Cuenta</label>
+                {{ form.cuenta }}
+                <div class="invalid-feedback">{{ form.cuenta.errors }}</div>
+              </div>
+
+              <div class="col-md-2">
+                <label for="{{ form.tipo_monto.id_for_label }}" class="form-label">Tipo de monto</label>
+                {{ form.tipo_monto }}
+                <div class="invalid-feedback">{{ form.tipo_monto.errors }}</div>
+              </div>
+              
+              <div class="col-md-2">
+                <label for="{{ form.monto.id_for_label }}" class="form-label">Monto</label>
+                {{ form.monto }}
+                <div class="invalid-feedback">{{ form.monto.errors }}</div>
+              </div>
+
+              <div class="col-md-1 d-flex align-items-end pb-1">
+                <button 
+                  type="button" 
+                  class="btn btn-danger btn-sm remove-detalle-form" 
+                  {% if forloop.counter <= 2 %}style="display: none;"{% endif %}
+                >X</button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        
+        <!-- Sección de Totales -->
+        <div class="row mt-3 mb-2 justify-content-end">
+          <div class="col-md-5">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Total Debe:</strong>
+                <span id="total-debe" class="fw-bold">0.00</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Total Haber:</strong>
+                <span id="total-haber" class="fw-bold">0.00</span>
+              </li>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <strong>Diferencia:</strong>
+                <span id="diferencia-asiento" class="fw-bold text-danger">0.00</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <button type="button" id="add-detalle-form" class="btn btn-secondary btn-sm mt-2">Agregar otra línea</button>
+
+        <hr class="my-4">
+
+        <div class="row g-3">
+          <div class="col-md-4"></div>
+          <div class="col-md-4">
+            <button class="w-100 btn btn-primary btn-lg" type="submit">Guardar Asiento Contable</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<!-- ✅ Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  
+  const form = document.getElementById('asiento-form');
+  const detalleFormList = document.getElementById('detalle-form-list');
+  const addDetalleButton = document.getElementById('add-detalle-form');
+  const totalFormsInput = document.querySelector('input[name="detalles-TOTAL_FORMS"]');
+  
+  const totalDebeSpan = document.getElementById('total-debe');
+  const totalHaberSpan = document.getElementById('total-haber');
+  const diferenciaSpan = document.getElementById('diferencia-asiento');
+  const messageContainer = document.getElementById('form-message-container');
+
+  function showFormMessage(message, type = 'danger') {
+      let oldAlert = messageContainer.querySelector('.alert-dynamic');
+      if (oldAlert) oldAlert.remove();
+      let alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dynamic`;
+      alertDiv.setAttribute('role', 'alert');
+      alertDiv.textContent = message;
+      messageContainer.prepend(alertDiv);
+      window.scrollTo(0, 0);
+  }
+
+  // 🔹 Calcular totales
+  function calcularTotales() {
+      let totalDebe = 0;
+      let totalHaber = 0;
+      let montosValidos = true;
+
+      const forms = detalleFormList.querySelectorAll('.detalle-form');
+      forms.forEach(formRow => {
+          if (formRow.classList.contains('form-eliminado')) return;
+
+          const tipoMontoSelect = formRow.querySelector('select[name$="-tipo_monto"]');
+          const montoInput = formRow.querySelector('input[name$="-monto"]');
+          if (!tipoMontoSelect || !montoInput) return;
+
+          let tipo = tipoMontoSelect.value.trim();
+          let monto = parseFloat(montoInput.value.replace(',', '.')) || 0;
+
+          if (monto <= 0 || monto > 200000) {
+              montosValidos = false;
+              montoInput.classList.add('is-invalid');
+          } else {
+              montoInput.classList.remove('is-invalid');
+          }
+
+          if (monto > 0 && monto <= 200000) {
+              if (tipo === 'Debe') totalDebe += monto;
+              else if (tipo === 'Haber') totalHaber += monto;
+          }
+      });
+
+      totalDebe = parseFloat(totalDebe.toFixed(2));
+      totalHaber = parseFloat(totalHaber.toFixed(2));
+      const diferencia = parseFloat((totalDebe - totalHaber).toFixed(2));
+
+      totalDebeSpan.textContent = totalDebe.toFixed(2);
+      totalHaberSpan.textContent = totalHaber.toFixed(2);
+      diferenciaSpan.textContent = diferencia.toFixed(2);
+
+      if (Math.abs(diferencia) < 0.01) {
+          diferenciaSpan.classList.remove('text-danger');
+          diferenciaSpan.classList.add('text-success');
+          diferenciaSpan.textContent = '0.00';
+      } else {
+          diferenciaSpan.classList.remove('text-success');
+          diferenciaSpan.classList.add('text-danger');
+      }
+
+      return { diferenciaCero: Math.abs(diferencia) < 0.01, montosValidos };
+  }
+
+  detalleFormList.addEventListener('input', e => {
+      if (e.target.name && e.target.name.endsWith('-monto')) calcularTotales();
+  });
+  detalleFormList.addEventListener('change', e => {
+      if (e.target.name && e.target.name.endsWith('-tipo_monto')) calcularTotales();
+  });
+
+  calcularTotales();
+
+  // 🔹 Agregar línea
+  addDetalleButton.addEventListener('click', function() {
+      let currentFormCount = parseInt(totalFormsInput.value);
+      let newForm = detalleFormList.children[0].cloneNode(true);
+      
+      newForm.querySelectorAll('input, select').forEach(function(el) {
+          if (el.name) el.name = el.name.replace(/detalles-\d+-/, `detalles-${currentFormCount}-`);
+          if (el.id) el.id = el.id.replace(/id_detalles-\d+-/, `id_detalles-${currentFormCount}-`);
+          if (el.type === 'number' || el.type === 'text') el.value = '';
+          if (el.tagName === 'SELECT') el.selectedIndex = 0;
+          if (el.name.endsWith('-DELETE')) el.checked = false;
+      });
+      
+      let deleteButton = newForm.querySelector('.remove-detalle-form');
+      if (deleteButton) deleteButton.style.display = 'block';
+
+      newForm.classList.remove('form-eliminado');
+      newForm.style.display = '';
+
+      detalleFormList.appendChild(newForm);
+      totalFormsInput.value = currentFormCount + 1;
+
+      calcularTotales();
+  });
+
+  // 🔹 Eliminar línea
+  detalleFormList.addEventListener('click', function(e) {
+      if (e.target && e.target.classList.contains('remove-detalle-form')) {
+          let formRow = e.target.closest('.detalle-form');
+          let deleteInput = formRow.querySelector('input[name$="-DELETE"]');
+          if (deleteInput) deleteInput.checked = true;
+          formRow.classList.add('form-eliminado');
+          formRow.style.display = 'none';
+          calcularTotales();
+      }
+  });
+
+  // 🔹 Validar antes de enviar
+  form.addEventListener('submit', function(event) {
+      const estado = calcularTotales();
+      let errores = [];
+
+      if (!estado.montosValidos)
+          errores.push('Todos los montos deben ser mayores que 0 y no superar los $200,000.');
+      if (!estado.diferenciaCero)
+          errores.push('Error de dualidad: El asiento no cumple la partida doble (Debe ≠ Haber).');
+
+      if (errores.length > 0) {
+          showFormMessage(errores.join(' '), 'danger');
+          event.preventDefault();
+      } else {
+          showFormMessage('✅ Verificación exitosa: Debe y Haber están balanceados.', 'success');
+      }
+  });
+
+});
+
+// 🔹 Cargar cuentas según tipo seleccionado
+function cargarCuentasPorTipo(tipoSelect) {
+    const tipo = tipoSelect.value;
+    const row = tipoSelect.closest('.detalle-form');
+    const cuentaSelect = row.querySelector('select[name$="-cuenta"]');
+
+    cuentaSelect.innerHTML = '<option>Cargando...</option>';
+
+    if (!tipo) {
+        cuentaSelect.innerHTML = '<option value="">--- Seleccione tipo primero ---</option>';
+        return;
+    }
+
+    fetch(`/cuentas_por_tipo/?tipo=${tipo}`)
+        .then(res => res.json())
+        .then(data => {
+            cuentaSelect.innerHTML = '<option value="">--- Seleccione cuenta ---</option>';
+            data.cuentas.forEach(cuenta => {
+                const opt = document.createElement('option');
+                opt.value = cuenta.id;
+                opt.textContent = cuenta.texto;
+                cuentaSelect.appendChild(opt);
+            });
+        })
+        .catch(() => {
+            cuentaSelect.innerHTML = '<option>Error cargando cuentas</option>';
+        });
+}
+
+// 🔹 Filtro dinámico tipo → cuentas
+document.addEventListener('change', e => {
+    if (e.target.classList.contains('tipo-cuenta-select')) {
+        cargarCuentasPorTipo(e.target);
+    }
+});
+</script>
+
+</body>
+{% endblock %}
