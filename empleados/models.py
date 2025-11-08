@@ -1,7 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from decimal import Decimal
-# Make sure this import path is correct
 from libromayor.models import ParametrosGlobales 
 
 class Empleado(models.Model):

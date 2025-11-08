@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'estadosfinancieros',
     'libromayor',
     'gestion_ucp',
-
     'django_extensions',
 
 ]

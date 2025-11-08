@@ -5,6 +5,15 @@
     <title>Registro de empleados</title>
   </head>
   <body>
+    <div id="controles_empleados">
+      <a href="{% url 'empleados:registrar_empleado' %}">
+    <button id="btn_registrar">Registrar Empleado</button>
+</a>
+      <button id="btn_modificar">Modificar Empleado</button>
+      <button id="btn_eliminar">Eliminar Empleado</button>
+      <input type="text" id="campo_buscar" placeholder="Buscar por ID o Nombre..." />
+      <button id="btn_buscar">Buscar</button>
+    </div>
     <!-- tabla_empleados: Tabla dinamica para empleados-->
     <table id="tabla_empleados" class="display">
       <thead>
@@ -37,7 +46,7 @@
           <td>{{ empleado.recargo_vacaciones }}</td>
           <td>{{ empleado.dias_aguinaldo_anual }}</td>
           <td>{{ empleado.eficiencia}}</td>
-          <td>{{ empleado.costo_real_ajustado }}</td>
+          <td>{{ empleado.costo_real_hora_ajustado }}</td>
           <td>{{ empleado.salario_bruto_mensual_calculado }}</td>
           <td>{{ empleado.total_deducciones_mensual }}</td>
           <td>{{ empleado.pago_liquido_mensual }}</td>
