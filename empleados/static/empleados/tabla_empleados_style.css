@@ -1,0 +1,260 @@
+/* ==================================== */
+/* 1. Global Reset and Base Layout */
+/* ==================================== */
+
+* {
+    box-sizing: border-box; /* Makes padding and border included in element's total width and height */
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6; /* Light gray background for the whole page */
+    color: #333;
+    line-height: 1.6;
+}
+
+.container-fluid {
+    /* Main container for centering content (for both templates) */
+    max-width: 1200px; 
+    margin: 0 auto; /* Centers the container */
+    padding: 20px;
+    background-color: #ffffff; /* White background for the content area */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Soft shadow for depth */
+    border-radius: 8px; 
+    min-height: 95vh; 
+}
+
+.page-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 30px;
+    margin-top: 20px;
+}
+
+/* ==================================== */
+/* 2. Form Styling (registrar_empleado.html) */
+/* ==================================== */
+
+.section-header {
+    background-color: #13795b;
+    color: white;
+    padding: 10px 15px;
+    font-weight: bold;
+    margin-bottom: 0;
+    border-radius: 4px 4px 0 0; /* Rounded top corners */
+}
+
+.form-section {
+    margin-bottom: 25px;
+}
+
+/* Wrapper for the form content below the header */
+.form-section > div:nth-child(2) { 
+    padding: 15px; 
+    border: 1px solid #dee2e6; 
+    border-top: none; 
+    border-radius: 0 0 4px 4px; /* Rounded bottom corners */
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Increased min-width for columns */
+    gap: 25px; /* Increased gap */
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    font-weight: 600; /* Bolder label text */
+    margin-bottom: 7px;
+    display: block;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select { /* Added select for Django ChoiceField */
+    width: 100%;
+    padding: 10px 12px; /* Slightly larger padding */
+    border: 1px solid #c8d1d8;
+    border-radius: 4px;
+    transition: border-color 0.2s, box-shadow 0.2s; 
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #13795b;
+    box-shadow: 0 0 0 2px rgba(19, 121, 91, 0.3);
+}
+
+.form-group .helptext {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 5px;
+    display: block;
+}
+
+.form-group .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0 0;
+    color: #dc3545;
+    font-size: 0.875rem;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 12px 15px;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* ==================================== */
+/* 3. Button Styles (Shared & Form-specific) */
+/* ==================================== */
+
+.btn-accion {
+    background-color: #212529; /* Darker default button color */
+    color: white;
+    border: none;
+    padding: 10px 20px; /* Larger padding for better size */
+    font-size: 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 600;
+}
+
+.btn-accion:hover {
+    background-color: #424649;
+    color: white;
+}
+
+.button-group {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+/* ==================================== */
+/* 4. Table Controls (tabla_empleados.html) */
+/* ==================================== */
+
+#controles_empleados {
+    display: flex; 
+    gap: 15px;    
+    margin-bottom: 30px;
+    padding: 15px;
+    border: none; 
+    border-radius: 6px;
+    background-color: #eaf0f0; /* Light background for control bar */
+    align-items: center;
+}
+
+/* Specific button styles for controls section */
+#btn_registrar,
+#btn_modificar,
+#btn_eliminar,
+#btn_buscar {
+    background-color: #13795b; 
+    color: white;
+    border: none;
+    padding: 10px 20px; 
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none; 
+    transition: background-color 0.2s;
+    font-weight: 600;
+}
+
+#btn_registrar:hover,
+#btn_modificar:hover,
+#btn_eliminar:hover,
+#btn_buscar:hover {
+    background-color: #10664d;
+}
+
+/* Make Registrar button stand out more */
+#controles_empleados a:first-child button {
+    background-color: #0d4e3d;
+}
+
+#campo_buscar {
+    flex-grow: 1; 
+    padding: 10px 12px;
+    border: 1px solid #b8c4c7;
+    border-radius: 4px;
+    max-width: 350px; 
+    transition: border-color 0.2s;
+}
+
+#campo_buscar:focus {
+    outline: none;
+    border-color: #13795b;
+}
+
+/* ==================================== */
+/* 5. Table Display (tabla_empleados.html) */
+/* ==================================== */
+
+#tabla_empleados {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+#tabla_empleados th,
+#tabla_empleados td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #dddddd;
+    border-right: 1px solid #dddddd; 
+}
+
+#tabla_empleados th {
+    background-color: #212529; 
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-right: 1px solid #3c4044;
+}
+
+#tabla_empleados tbody tr:nth-child(even) {
+    background-color: #f8f8f8; /* Light gray for alternating rows */
+}
+
+#tabla_empleados tbody tr:hover {
+    background-color: #e8f0fe; 
+    cursor: pointer;
+}
+
+/* Remove border on the last column */
+#tabla_empleados th:last-child,
+#tabla_empleados td:last-child {
+    border-right: none;
+}
+
+/* Other utility classes from original CSS */
+.total-row {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+.readonly-field {
+    background-color: #e9ecef;
+}
