@@ -1,7 +1,7 @@
 # contabilidad/forms.py
 from django import forms
 from django.forms import formset_factory
-from .models import AsientoContable, DetalleAsiento, Cuenta, PeriodoContable
+from .models import AsientoContable, DetalleAsiento, Cuenta, PeriodoContable , EstimacionCostoIndirectoGlobal
 from decimal import Decimal
 import calendar
 from django.core.exceptions import ValidationError
@@ -199,3 +199,13 @@ class ParametrosGlobalesForm(forms.ModelForm):
     class Meta:
         model = ParametrosGlobales
         exclude = ['tasa_gastos_indirectos_por_hora']
+
+class EstimacionCostoIndirectoGlobalForm(forms.ModelForm):
+    class Meta:
+        model = EstimacionCostoIndirectoGlobal
+        fields = ['nombre', 'descripcion', 'monto_estimado_mensual']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'monto_estimado_mensual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }

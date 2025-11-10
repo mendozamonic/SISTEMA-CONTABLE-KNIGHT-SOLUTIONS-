@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4 col-md-10">
+  <h3>{{ accion }} empleado</h3>
+
+  <form method="post" id="formEmpleado">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-6">{{ form.nombre.label_tag }} {{ form.nombre }}</div>
+      <div class="col-md-6">{{ form.cargo.label_tag }} {{ form.cargo }}</div>
+      <div class="col-md-3">{{ form.salario_diario.label_tag }} {{ form.salario_diario }}</div>
+      <div class="col-md-3">{{ form.dias_laborados_semana.label_tag }} {{ form.dias_laborados_semana }}</div>
+      <div class="col-md-3">{{ form.horas_laboradas_diarias.label_tag }} {{ form.horas_laboradas_diarias }}</div>
+      <div class="col-md-3">{{ form.eficiencia.label_tag }} {{ form.eficiencia }}</div>
+      <div class="col-md-3">{{ form.dias_vacaciones_anual.label_tag }} {{ form.dias_vacaciones_anual }}</div>
+      <div class="col-md-3">{{ form.dias_aguinaldo_anual.label_tag }} {{ form.dias_aguinaldo_anual }}</div>
+      <div class="col-md-3">{{ form.recargo_vacaciones.label_tag }} {{ form.recargo_vacaciones }}</div>
+    </div>
+
+    <hr>
+
+    <!-- Resultados principales -->
+    <div class="row g-3 mt-2 text-center">
+      <div class="col-md-3">
+        <label class="fw-semibold">Salario mensual</label>
+        <input type="text" id="salario_mensual" class="form-control text-center" readonly>
+      </div>
+      <div class="col-md-3">
+        <label class="fw-semibold">Aportes patronales</label>
+        <input type="text" id="aportes_patronales" class="form-control text-center" readonly>
+      </div>
+      <div class="col-md-3">
+        <label class="fw-semibold text-primary">Costo real / hora (sin eficiencia)</label>
+        <input type="text" id="costo_hora_sin" class="form-control fw-bold text-primary text-center" readonly>
+      </div>
+      <div class="col-md-3">
+        <label class="fw-semibold text-success">Costo real / hora (con eficiencia)</label>
+        <input type="text" id="costo_hora_con" class="form-control fw-bold text-success text-center" readonly>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Tabla tipo Excel -->
+    <div class="mt-4">
+      <h5 class="text-success">
+        <i class="bi bi-calculator-fill me-1"></i> Cálculo del Costo Real Semanal
+      </h5>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm align-middle text-center">
+          <thead class="table-success">
+            <tr>
+              <th>Concepto</th>
+              <th>Fórmula</th>
+              <th>Resultado ($)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Salario base semanal</td><td>Salario diario × días laborados</td><td id="r_salario_base"></td></tr>
+            <tr><td>Séptimo día</td><td>Salario diario × (7 - días laborados)</td><td id="r_septimo"></td></tr>
+            <tr><td>Vacaciones</td><td>(Salario × Vacaciones × (1+recargo)) / 52</td><td id="r_vacaciones"></td></tr>
+            <tr><td>Aguinaldo</td><td>(Salario × Aguinaldo) / 52</td><td id="r_aguinaldo"></td></tr>
+            <tr><td>ISSS Patronal</td><td>(Base + Séptimo) × {{ parametros.patronal_seguro_social|floatformat:4 }}</td><td id="r_isss"></td></tr>
+            <tr><td>AFP Patronal</td><td>(Base + Séptimo) × {{ parametros.patronal_afp|floatformat:4 }}</td><td id="r_afp"></td></tr>
+            <tr class="table-success fw-semibold"><td colspan="2">Costo Real Semanal Total</td><td id="r_total"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Factores y costo SIN eficiencia -->
+      <h5 class="text-primary mt-4">
+        <i class="bi bi-speedometer2 me-1"></i> Factores y Costo (sin eficiencia)
+      </h5>
+      <div class="row text-center mt-2">
+        <div class="col-md-4">
+          <label class="fw-semibold">Factor sin eficiencia</label>
+          <input type="text" id="r_factor_sin" class="form-control text-center" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-semibold">Costo real / hora (sin eficiencia)</label>
+          <input type="text" id="r_costo_hora_excel_sin" class="form-control text-center text-primary fw-bold" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-semibold">Costo mensual (sin eficiencia)</label>
+          <input type="text" id="r_costo_mensual_excel_sin" class="form-control text-center fw-bold" readonly>
+        </div>
+      </div>
+
+      <!-- Factores y costo CON eficiencia -->
+      <h5 class="text-success mt-4">
+        <i class="bi bi-graph-up-arrow me-1"></i> Factores y Costo (con eficiencia)
+      </h5>
+      <div class="row text-center mt-2">
+        <div class="col-md-4">
+          <label class="fw-semibold">Factor con eficiencia</label>
+          <input type="text" id="r_factor_con" class="form-control text-center" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-semibold">Costo real / hora (con eficiencia)</label>
+          <input type="text" id="r_costo_hora_excel_con" class="form-control text-center text-success fw-bold" readonly>
+        </div>
+        <div class="col-md-4">
+          <label class="fw-semibold">Costo mensual (con eficiencia)</label>
+          <input type="text" id="r_costo_mensual_excel_con" class="form-control text-center fw-bold" readonly>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <button type="submit" class="btn btn-success px-4">💾 Guardar</button>
+      <a href="{% url 'lista_empleados' %}" class="btn btn-secondary px-4">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const PARAMS = {
+    patronal_isss: {{ parametros.patronal_seguro_social|floatformat:4 }},
+    patronal_afp: {{ parametros.patronal_afp|floatformat:4 }},
+    eficiencia_base: {{ parametros.eficiencia_base|floatformat:2 }},
+    recargo_vac_default: {{ parametros.recargo_vacaciones|floatformat:2 }},
+    dias_semana_default: {{ parametros.dias_laborados_semana }},
+    horas_dia_default: {{ parametros.horas_laboradas_diarias }},
+  };
+
+  function calcularCostoReal() {
+    const salario_diario = parseFloat(document.getElementById("id_salario_diario").value) || 0;
+    const dias_lab = parseFloat(document.getElementById("id_dias_laborados_semana").value) || PARAMS.dias_semana_default;
+    const horas_dia = parseFloat(document.getElementById("id_horas_laboradas_diarias").value) || PARAMS.horas_dia_default;
+    const recargo_vac = parseFloat(document.getElementById("id_recargo_vacaciones").value) || PARAMS.recargo_vac_default;
+    const dias_vac = parseFloat(document.getElementById("id_dias_vacaciones_anual").value) || 0;
+    const dias_agui = parseFloat(document.getElementById("id_dias_aguinaldo_anual").value) || 0;
+    const eficiencia = parseFloat(document.getElementById("id_eficiencia").value) || PARAMS.eficiencia_base;
+
+    const salario_base_semana = salario_diario * dias_lab;
+    const septimo_dia = salario_diario * (7 - dias_lab);
+    const vacaciones_sem = (salario_diario * dias_vac * (1 + recargo_vac)) / 52;
+    const aguinaldo_sem = (salario_diario * dias_agui) / 52;
+    const isss_patronal = (salario_base_semana + septimo_dia) * PARAMS.patronal_isss;
+    const afp_patronal = (salario_base_semana + septimo_dia) * PARAMS.patronal_afp;
+
+    const costo_real_semana = salario_base_semana + septimo_dia + vacaciones_sem + aguinaldo_sem + isss_patronal + afp_patronal;
+
+    const factor_sin_ef = salario_base_semana > 0 ? costo_real_semana / salario_base_semana : 0;
+    const factor_con_ef = eficiencia > 0 ? factor_sin_ef / eficiencia : factor_sin_ef;
+
+    const costo_hora_sin = (salario_diario * factor_sin_ef) / horas_dia;
+    const costo_hora_con = (salario_diario * factor_con_ef) / horas_dia;
+
+    const costo_mensual_sin = costo_hora_sin * horas_dia * dias_lab * 4.33;
+    const costo_mensual_con = costo_hora_con * horas_dia * dias_lab * 4.33;
+
+    // Mostrar resultados generales
+    document.getElementById("salario_mensual").value = (salario_diario * 30).toFixed(2);
+    document.getElementById("aportes_patronales").value = (isss_patronal + afp_patronal).toFixed(2);
+    document.getElementById("costo_hora_sin").value = costo_hora_sin.toFixed(2);
+    document.getElementById("costo_hora_con").value = costo_hora_con.toFixed(2);
+
+    // Mostrar tabla tipo Excel
+    document.getElementById("r_salario_base").textContent = salario_base_semana.toFixed(2);
+    document.getElementById("r_septimo").textContent = septimo_dia.toFixed(2);
+    document.getElementById("r_vacaciones").textContent = vacaciones_sem.toFixed(2);
+    document.getElementById("r_aguinaldo").textContent = aguinaldo_sem.toFixed(2);
+    document.getElementById("r_isss").textContent = isss_patronal.toFixed(2);
+    document.getElementById("r_afp").textContent = afp_patronal.toFixed(2);
+    document.getElementById("r_total").textContent = costo_real_semana.toFixed(2);
+
+    // Factores y costos
+    document.getElementById("r_factor_sin").value = factor_sin_ef.toFixed(2);
+    document.getElementById("r_factor_con").value = factor_con_ef.toFixed(2);
+    document.getElementById("r_costo_hora_excel_sin").value = costo_hora_sin.toFixed(2);
+    document.getElementById("r_costo_hora_excel_con").value = costo_hora_con.toFixed(2);
+    document.getElementById("r_costo_mensual_excel_sin").value = costo_mensual_sin.toFixed(2);
+    document.getElementById("r_costo_mensual_excel_con").value = costo_mensual_con.toFixed(2);
+  }
+
+  document.querySelectorAll("input").forEach(el => el.addEventListener("input", calcularCostoReal));
+  calcularCostoReal();
+});
+</script>
+{% endblock %}

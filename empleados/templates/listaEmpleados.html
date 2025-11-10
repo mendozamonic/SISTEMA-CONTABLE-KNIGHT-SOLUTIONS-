@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Lista de Empleados{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4 text-success">
+    <i class="bi bi-people-fill me-2"></i> Costo Real de los Empleados
+  </h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="mb-3">
+    <a href="{% url 'crear_empleado' %}" class="btn btn-success">
+      <i class="bi bi-person-plus-fill me-1"></i> Agregar empleado
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle shadow-sm">
+      <thead class="table-success text-center">
+        <tr>
+          <th>Nombre</th>
+          <th>Cargo</th>
+          <th>Salario Diario ($)</th>
+          <th>Salario Mensual ($)</th>
+          <th>Aportes Patronales ($)</th>
+          <th>Costo Real/Hora ($)</th>
+          <th>Costo Mensual ($)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empleados %}
+        <tr>
+          <td>{{ e.nombre }}</td>
+          <td>{{ e.cargo }}</td>
+          <td class="text-end">{{ e.salario_diario|floatformat:2 }}</td>
+          <td class="text-end">{{ e.salario_bruto_mensual_calculado|default:"-"|floatformat:2 }}</td>
+          <td class="text-end">{{ e.aporte_patronal_isss_mensual|default_if_none:"0.00"|floatformat:2 }} + {{ e.aporte_patronal_afp_mensual|default_if_none:"0.00"|floatformat:2 }}</td>
+          <td class="text-end fw-bold text-success">{{ e.costo_real_hora_ajustado|default_if_none:"0.0000"|floatformat:4 }}</td>
+          <td class="text-end">{{ e.costo_real_hora_ajustado|floatformat:4|add:"*8*5*4.33"|floatformat:2 }}</td>
+          <td class="text-center">
+            <a href="{% url 'editar_empleado' e.id %}" class="btn btn-warning btn-sm me-1"><i class="bi bi-pencil-square"></i></a>
+            <a href="{% url 'eliminar_empleado' e.id %}" class="btn btn-danger btn-sm"><i class="bi bi-trash3-fill"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-3">No hay empleados registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

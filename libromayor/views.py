@@ -13,6 +13,7 @@ from .forms import (
     DetalleAsientoFormSet,
     PeriodoContableForm,
     ParametrosGlobalesForm,
+    EstimacionCostoIndirectoGlobalForm
 )
 
 from .models import (
@@ -22,6 +23,8 @@ from .models import (
     PeriodoContable,
     SaldoCuenta,
     ParametrosGlobales,
+    EstimacionCostoIndirectoGlobal
+    
 )
 
 # Logger para el módulo
@@ -521,3 +524,58 @@ def parametros_globales_view(request):
     })
 
 
+def recalcular_tasa_indirectos():
+    """Actualiza la tasa de gastos indirectos en base a los registros existentes."""
+    parametros = ParametrosGlobales.objects.first()
+    if not parametros:
+        return
+
+    total = EstimacionCostoIndirectoGlobal.objects.aggregate(
+        total=Sum('monto_estimado_mensual')
+    )['total'] or Decimal('0.00')
+
+    if parametros.horas_directas_estimadas_mensual > 0:
+        parametros.tasa_gastos_indirectos_por_hora = round(
+            total / parametros.horas_directas_estimadas_mensual, 4
+        )
+    else:
+        parametros.tasa_gastos_indirectos_por_hora = Decimal('0.00')
+
+    parametros.save(update_fields=['tasa_gastos_indirectos_por_hora'])
+    logger.info("Tasa de gastos indirectos recalculada: %s", parametros.tasa_gastos_indirectos_por_hora)
+
+
+def lista_costos_indirectos_view(request):
+    costos = EstimacionCostoIndirectoGlobal.objects.all()
+    return render(request, 'listaCI.html', {'costos': costos})
+
+
+def crear_costo_indirecto_view(request):
+    form = EstimacionCostoIndirectoGlobalForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        recalcular_tasa_indirectos()
+        messages.success(request, "✅ Costo indirecto agregado correctamente.")
+        return redirect('lista_costos_indirectos')
+    return render(request, 'formCI.html', {'form': form, 'accion': 'Agregar'})
+
+
+def editar_costo_indirecto_view(request, pk):
+    costo = get_object_or_404(EstimacionCostoIndirectoGlobal, pk=pk)
+    form = EstimacionCostoIndirectoGlobalForm(request.POST or None, instance=costo)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        recalcular_tasa_indirectos()
+        messages.success(request, "✏️ Costo indirecto actualizado correctamente.")
+        return redirect('lista_costos_indirectos')
+    return render(request, 'formCI.html', {'form': form, 'accion': 'Editar'})
+
+
+def eliminar_costo_indirecto_view(request, pk):
+    costo = get_object_or_404(EstimacionCostoIndirectoGlobal, pk=pk)
+    if request.method == 'POST':
+        costo.delete()
+        recalcular_tasa_indirectos()
+        messages.success(request, "🗑️ Costo indirecto eliminado correctamente.")
+        return redirect('lista_costos_indirectos')
+    return render(request, 'confirmar_eliminar.html', {'costo': costo})
