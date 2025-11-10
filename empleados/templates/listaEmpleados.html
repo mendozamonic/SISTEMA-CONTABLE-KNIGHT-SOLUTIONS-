@@ -2,11 +2,15 @@
 {% block title %}Lista de Empleados{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4 text-success">
-    <i class="bi bi-people-fill me-2"></i> Costo Real de los Empleados
-  </h2>
+<div class="container mt-4 col-md-11">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-success"><i class="bi bi-people-fill me-2"></i> Lista de Empleados</h3>
+    <a href="{% url 'crear_empleado' %}" class="btn btn-success">
+      <i class="bi bi-person-plus-fill me-1"></i> Agregar empleado
+    </a>
+  </div>
 
+  <!-- Mensajes -->
   {% if messages %}
     {% for message in messages %}
       <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -16,46 +20,141 @@
     {% endfor %}
   {% endif %}
 
-  <div class="mb-3">
-    <a href="{% url 'crear_empleado' %}" class="btn btn-success">
-      <i class="bi bi-person-plus-fill me-1"></i> Agregar empleado
-    </a>
-  </div>
-
-  <div class="table-responsive">
-    <table class="table table-striped table-hover align-middle shadow-sm">
-      <thead class="table-success text-center">
+  <div class="table-responsive shadow-sm">
+    <table id="tablaEmpleados" class="table table-bordered table-hover align-middle text-center">
+      <thead class="table-success">
         <tr>
           <th>Nombre</th>
           <th>Cargo</th>
           <th>Salario Diario ($)</th>
           <th>Salario Mensual ($)</th>
           <th>Aportes Patronales ($)</th>
-          <th>Costo Real/Hora ($)</th>
-          <th>Costo Mensual ($)</th>
+          <th class="text-primary">Costo / hora (sin eficiencia)</th>
+          <th class="text-primary">Costo mensual (sin eficiencia)</th>
+          <th class="text-success">Costo / hora (con eficiencia)</th>
+          <th class="text-success">Costo mensual (con eficiencia)</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for e in empleados %}
-        <tr>
+        <tr 
+          data-salario-diario="{{ e.salario_diario }}"
+          data-dias-lab="{{ e.dias_laborados_semana|default_if_none:5 }}"
+          data-horas-dia="{{ e.horas_laboradas_diarias|default_if_none:8 }}"
+          data-recargo-vac="{{ e.recargo_vacaciones|default_if_none:0.30 }}"
+          data-dias-vac="{{ e.dias_vacaciones_anual|default_if_none:15 }}"
+          data-dias-agui="{{ e.dias_aguinaldo_anual|default_if_none:15 }}"
+          data-eficiencia="{{ e.eficiencia|default_if_none:0.85 }}"
+        >
           <td>{{ e.nombre }}</td>
           <td>{{ e.cargo }}</td>
           <td class="text-end">{{ e.salario_diario|floatformat:2 }}</td>
-          <td class="text-end">{{ e.salario_bruto_mensual_calculado|default:"-"|floatformat:2 }}</td>
-          <td class="text-end">{{ e.aporte_patronal_isss_mensual|default_if_none:"0.00"|floatformat:2 }} + {{ e.aporte_patronal_afp_mensual|default_if_none:"0.00"|floatformat:2 }}</td>
-          <td class="text-end fw-bold text-success">{{ e.costo_real_hora_ajustado|default_if_none:"0.0000"|floatformat:4 }}</td>
-          <td class="text-end">{{ e.costo_real_hora_ajustado|floatformat:4|add:"*8*5*4.33"|floatformat:2 }}</td>
-          <td class="text-center">
-            <a href="{% url 'editar_empleado' e.id %}" class="btn btn-warning btn-sm me-1"><i class="bi bi-pencil-square"></i></a>
-            <a href="{% url 'eliminar_empleado' e.id %}" class="btn btn-danger btn-sm"><i class="bi bi-trash3-fill"></i></a>
+          <td class="text-end salario-mes">—</td>
+          <td class="text-end aportes-patronales">—</td>
+
+          <!-- Costo real sin eficiencia -->
+          <td class="text-primary fw-semibold text-end hora-sin">—</td>
+          <td class="text-primary fw-semibold text-end mes-sin">—</td>
+
+          <!-- Costo real con eficiencia -->
+          <td class="text-success fw-semibold text-end hora-con">—</td>
+          <td class="text-success fw-semibold text-end mes-con">—</td>
+
+          <!-- Acciones -->
+          <td>
+            <div class="d-flex justify-content-center gap-3">
+              <a href="{% url 'editar_empleado' e.id %}" 
+                 class="btn btn-warning btn-sm px-3 py-1" 
+                 title="Editar">
+                <i class="bi bi-pencil-square"></i> Editar
+              </a>
+              <form method="post" action="{% url 'eliminar_empleado' e.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="btn btn-danger btn-sm px-3 py-1" 
+                        title="Eliminar" 
+                        onclick="return confirm('¿Seguro que deseas eliminar este empleado?')">
+                  <i class="bi bi-trash3-fill"></i> Eliminar
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="text-center text-muted py-3">No hay empleados registrados.</td></tr>
+        <tr>
+          <td colspan="10" class="text-center text-muted py-3">No hay empleados registrados.</td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // MISMOS PARÁMETROS QUE EL FORMULARIO
+  const PARAMS = {
+    patronal_isss: {{ parametros.patronal_seguro_social|floatformat:4 }},
+    patronal_afp: {{ parametros.patronal_afp|floatformat:4 }},
+  };
+
+  const filas = document.querySelectorAll("#tablaEmpleados tbody tr[data-salario-diario]");
+  
+  filas.forEach(fila => {
+    // Leer datos del empleado (exactamente como el form)
+    const salario_diario = parseFloat(fila.dataset.salarioDiario) || 0;
+    const dias_lab = parseFloat(fila.dataset.diasLab) || 5;
+    const horas_dia = parseFloat(fila.dataset.horasDia) || 8;
+    const recargo_vac = parseFloat(fila.dataset.recargoVac) || 0.30;
+    const dias_vac = parseFloat(fila.dataset.diasVac) || 15;
+    const dias_agui = parseFloat(fila.dataset.diasAgui) || 15;
+    const eficiencia = parseFloat(fila.dataset.eficiencia) || 0.85;
+
+    // ============================================
+    // CÁLCULO IDÉNTICO AL FORMULARIO
+    // ============================================
+    const salario_base_semana = salario_diario * dias_lab;
+    const septimo_dia = salario_diario * (7 - dias_lab);
+    const vacaciones_sem = (salario_diario * dias_vac * (1 + recargo_vac)) / 52;
+    const aguinaldo_sem = (salario_diario * dias_agui) / 52;
+    const isss_patronal = (salario_base_semana + septimo_dia) * PARAMS.patronal_isss;
+    const afp_patronal = (salario_base_semana + septimo_dia) * PARAMS.patronal_afp;
+
+    const costo_real_semana = salario_base_semana + septimo_dia + vacaciones_sem + aguinaldo_sem + isss_patronal + afp_patronal;
+
+    const factor_sin_ef = salario_base_semana > 0 ? costo_real_semana / salario_base_semana : 0;
+    const factor_con_ef = eficiencia > 0 ? factor_sin_ef / eficiencia : factor_sin_ef;
+
+    const costo_hora_sin = (salario_diario * factor_sin_ef) / horas_dia;
+    const costo_hora_con = (salario_diario * factor_con_ef) / horas_dia;
+
+    const DIAS_MES = dias_lab * 4.33;
+    const costo_mensual_sin = costo_hora_sin * horas_dia * DIAS_MES;
+    const costo_mensual_con = costo_hora_con * horas_dia * DIAS_MES;
+
+    // ============================================
+    // MOSTRAR RESULTADOS
+    // ============================================
+    
+    // Salario mensual (igual que form: salario_diario × 30)
+    fila.querySelector(".salario-mes").textContent = "$" + (salario_diario * 30).toFixed(2);
+    
+    // Aportes patronales semanales
+    const aportes_total = isss_patronal + afp_patronal;
+    fila.querySelector(".aportes-patronales").innerHTML = 
+      `$${isss_patronal.toFixed(2)} + $${afp_patronal.toFixed(2)}<br>` +
+      `<small class="text-muted">Total: $${aportes_total.toFixed(2)}</small>`;
+    
+    // Costos por hora
+    fila.querySelector(".hora-sin").textContent = costo_hora_sin.toFixed(4);
+    fila.querySelector(".hora-con").textContent = costo_hora_con.toFixed(4);
+    
+    // Costos mensuales
+    fila.querySelector(".mes-sin").textContent = "$" + costo_mensual_sin.toFixed(2);
+    fila.querySelector(".mes-con").textContent = "$" + costo_mensual_con.toFixed(2);
+  });
+});
+</script>
+
 {% endblock %}

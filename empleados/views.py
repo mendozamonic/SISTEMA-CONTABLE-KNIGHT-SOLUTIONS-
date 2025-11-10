@@ -8,6 +8,12 @@ from libromayor.models import ParametrosGlobales
 # --- LISTAR ---
 def lista_empleados_view(request):
     empleados = Empleado.objects.all()
+    
+    # Obtener parámetros globales (necesarios para el JavaScript)
+    parametros = ParametrosGlobales.objects.first()
+    if not parametros:
+        messages.warning(request, "⚠️ Debes configurar primero los Parámetros Globales del sistema.")
+        return redirect('parametros_globales')
 
     # Calcular promedio de costo real por hora
     promedio_costo = empleados.aggregate(
@@ -18,7 +24,8 @@ def lista_empleados_view(request):
 
     return render(request, 'listaEmpleados.html', {
         'empleados': empleados,
-        'promedio_costo': promedio_costo
+        'promedio_costo': promedio_costo,
+        'parametros': parametros,  # ← AGREGADO
     })
 
 
@@ -30,7 +37,7 @@ def crear_empleado_view(request):
     parametros = ParametrosGlobales.objects.first()
     if not parametros:
         messages.warning(request, "⚠️ Debes configurar primero los Parámetros Globales del sistema.")
-        return redirect('parametros_globales')  # 🔁 redirige al formulario global
+        return redirect('parametros_globales')
 
     if request.method == 'POST' and form.is_valid():
         empleado = form.save()

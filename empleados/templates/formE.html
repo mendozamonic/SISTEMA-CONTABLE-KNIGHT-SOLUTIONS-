@@ -148,9 +148,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const costo_hora_sin = (salario_diario * factor_sin_ef) / horas_dia;
     const costo_hora_con = (salario_diario * factor_con_ef) / horas_dia;
 
-    const costo_mensual_sin = costo_hora_sin * horas_dia * dias_lab * 4.33;
-    const costo_mensual_con = costo_hora_con * horas_dia * dias_lab * 4.33;
+    const DIAS_MES = dias_lab * 4.33; // promedio 4.33 semanas
+    const costo_mensual_sin = costo_hora_sin * horas_dia * DIAS_MES;
+    const costo_mensual_con = costo_hora_con * horas_dia * DIAS_MES;
 
+    
     // Mostrar resultados generales
     document.getElementById("salario_mensual").value = (salario_diario * 30).toFixed(2);
     document.getElementById("aportes_patronales").value = (isss_patronal + afp_patronal).toFixed(2);
