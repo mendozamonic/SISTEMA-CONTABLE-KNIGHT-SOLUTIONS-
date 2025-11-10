@@ -8,5 +8,6 @@ urlpatterns = [
     path('', views.tabla_empleados, name='tabla_empleados'), 
     path('registro_empleado/', views.registro_empleado, name='registro_empleado'),
     path('tabla_empleados/', views.tabla_empleados, name='tabla_empleados'),
+    path('modificar/<int:pk>/', views.modificar_empleado, name='modificar_empleado'),
     path('eliminar/<int:pk>/', views.eliminar_empleado, name='eliminar_empleado'),
 ]

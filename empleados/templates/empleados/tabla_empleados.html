@@ -18,7 +18,7 @@
       <a href="{% url 'empleados:registro_empleado' %}">
         <button id="btn_registrar">Registrar Empleado</button>
       </a>
-      <button id="btn_modificar">Modificar Empleado</button>
+      <button id="btn_modificar" disabled>Modificar Empleado</button>
       <button id="btn_eliminar" disabled>Eliminar Empleado</button>
       <input type="text" id="campo_buscar" placeholder="Buscar por Nombre o Cargo..." />
     </div>
@@ -84,6 +84,7 @@
     <script>
     $(document).ready(function() {
         const tablaEmpleados = $('#tabla_empleados');
+        const botonModificar = $('#btn_modificar');
         const botonEliminar = $('#btn_eliminar');
         const deleteForm = $('#delete-form');
         let selectedRowPk = null;
@@ -99,11 +100,25 @@
             // 3. Obtener y almacenar el ID (pk)
             selectedRowPk = $(this).data('pk');
 
-            // 4. Habilitar el botón de eliminar
+            // 4. Habilitar los botones de modificar y eliminar
+            botonModificar.prop('disabled', false);
             botonEliminar.prop('disabled', false);
         });
 
-        // --- B. Lógica del Botón 'Eliminar Empleado' ---
+        // --- B. Lógica del Botón 'Modificar Empleado' ---
+        botonModificar.click(function() {
+            if (selectedRowPk) {
+                // Construir la URL de modificación: /empleados/modificar/<pk>/
+                let modifyUrl = '/empleados/modificar/' + selectedRowPk + '/';
+                
+                // Redirigir a la página de modificación
+                window.location.href = modifyUrl;
+            } else {
+                alert('Por favor, haz doble clic en una fila para seleccionarla antes de modificar.');
+            }
+        });
+
+        // --- C. Lógica del Botón 'Eliminar Empleado' ---
         botonEliminar.click(function() {
             if (selectedRowPk) {
                 // Confirmación al usuario
@@ -129,6 +144,7 @@
             if (e.key === "Escape") { 
                 tablaEmpleados.find('tbody tr').removeClass('selected');
                 selectedRowPk = null;
+                botonModificar.prop('disabled', true);
                 botonEliminar.prop('disabled', true);
             }
         });
@@ -162,6 +178,7 @@
                     if (fila.hasClass('selected')) {
                         fila.removeClass('selected');
                         selectedRowPk = null;
+                        botonModificar.prop('disabled', true);
                         botonEliminar.prop('disabled', true);
                     }
                 }

@@ -33,7 +33,35 @@ def registro_empleado(request):
     else:
         form = EmpleadoForm()
         
-    return render(request, 'empleados/registrar_empleado.html', {'form': form})
+    return render(request, 'empleados/registrar_empleado.html', {'form': form, 'page_title': 'Registrar Empleado'})
+
+
+def modificar_empleado(request, pk):
+    """
+    Vista para modificar un empleado existente.
+    Similar a registro_empleado pero con una instancia del modelo.
+    """
+    empleado = get_object_or_404(Empleado, pk=pk)
+    
+    if request.method == 'POST':
+        form = EmpleadoForm(request.POST, instance=empleado)
+        if form.is_valid():
+            try:
+                # When .save() is called, the Empleado model's save method
+                # automatically runs all the payroll calculations before committing to the DB.
+                empleado = form.save()
+                print(f"Empleado modificado exitosamente: {empleado.nombre} (ID: {empleado.pk})")
+                return redirect('empleados:tabla_empleados')
+            except Exception as e:
+                print(f"Error al modificar empleado: {e}")
+                pass
+    else:
+        form = EmpleadoForm(instance=empleado)
+    
+    return render(request, 'empleados/registrar_empleado.html', {
+        'form': form, 
+        'page_title': f'Modificar Empleado: {empleado.nombre}'
+    })
 
     
 @require_POST
