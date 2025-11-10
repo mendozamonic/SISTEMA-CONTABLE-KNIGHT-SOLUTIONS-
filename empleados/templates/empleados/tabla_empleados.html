@@ -20,8 +20,7 @@
       </a>
       <button id="btn_modificar">Modificar Empleado</button>
       <button id="btn_eliminar" disabled>Eliminar Empleado</button>
-      <input type="text" id="campo_buscar" placeholder="Buscar por ID o Nombre..." />
-      <button id="btn_buscar">Buscar</button>
+      <input type="text" id="campo_buscar" placeholder="Buscar por Nombre o Cargo..." />
     </div>
     <table id="tabla_empleados" class="display">
       <thead>
@@ -131,6 +130,54 @@
                 tablaEmpleados.find('tbody tr').removeClass('selected');
                 selectedRowPk = null;
                 botonEliminar.prop('disabled', true);
+            }
+        });
+        
+        // --- C. Lógica de Búsqueda por Nombre o Cargo ---
+        const campoBuscar = $('#campo_buscar');
+        
+        // Función para filtrar las filas de la tabla
+        function filtrarTabla() {
+            const terminoBusqueda = campoBuscar.val().toLowerCase().trim();
+            const filas = tablaEmpleados.find('tbody tr');
+            
+            // Si el campo está vacío, mostrar todas las filas
+            if (terminoBusqueda === '') {
+                filas.show();
+                return;
+            }
+            
+            // Filtrar filas: buscar en nombre (columna 2, índice 1) o cargo (columna 3, índice 2)
+            filas.each(function() {
+                const fila = $(this);
+                const nombre = fila.find('td').eq(1).text().toLowerCase(); // Columna Nombre
+                const cargo = fila.find('td').eq(2).text().toLowerCase(); // Columna Cargo
+                
+                // Mostrar la fila si el término de búsqueda coincide con nombre o cargo
+                if (nombre.includes(terminoBusqueda) || cargo.includes(terminoBusqueda)) {
+                    fila.show();
+                } else {
+                    fila.hide();
+                    // Si la fila oculta estaba seleccionada, deseleccionarla
+                    if (fila.hasClass('selected')) {
+                        fila.removeClass('selected');
+                        selectedRowPk = null;
+                        botonEliminar.prop('disabled', true);
+                    }
+                }
+            });
+        }
+        
+        // Evento al escribir en el campo de búsqueda (filtrado en tiempo real)
+        campoBuscar.on('input', function() {
+            filtrarTabla();
+        });
+        
+        // Permitir búsqueda con Enter
+        campoBuscar.keypress(function(e) {
+            if (e.which === 13) { // Enter key
+                e.preventDefault();
+                filtrarTabla();
             }
         });
     });

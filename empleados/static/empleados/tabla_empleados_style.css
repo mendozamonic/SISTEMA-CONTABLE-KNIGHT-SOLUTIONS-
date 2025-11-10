@@ -166,8 +166,7 @@ body {
 /* Specific button styles for controls section */
 #btn_registrar,
 #btn_modificar,
-#btn_eliminar,
-#btn_buscar {
+#btn_eliminar {
     background-color: #13795b; 
     color: white;
     border: none;
@@ -182,8 +181,7 @@ body {
 
 #btn_registrar:hover,
 #btn_modificar:hover,
-#btn_eliminar:hover,
-#btn_buscar:hover {
+#btn_eliminar:hover {
     background-color: #10664d;
 }
 
