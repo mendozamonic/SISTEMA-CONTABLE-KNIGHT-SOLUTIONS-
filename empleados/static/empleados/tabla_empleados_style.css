@@ -258,3 +258,8 @@ body {
 .readonly-field {
     background-color: #e9ecef;
 }
+      .selected {
+        background-color: #ffe0b2; /* Color para resaltar la fila seleccionada */
+        font-weight: bold;
+        cursor: pointer;
+      }

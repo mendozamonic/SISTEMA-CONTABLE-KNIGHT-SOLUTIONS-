@@ -37,10 +37,4 @@ class EmpleadoForm(forms.ModelForm):
             'deduccion_renta_mensual',
             'total_deducciones_mensual',
             'pago_liquido_mensual',
-             'dias_laborados_semana',
-            'horas_laboradas_diarias',
-            'dias_vacaciones_anual',
-            'recargo_vacaciones',
-            'dias_aguinaldo_anual',
-            'eficiencia',
         ]

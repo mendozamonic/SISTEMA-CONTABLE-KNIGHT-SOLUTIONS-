@@ -5,60 +5,135 @@
     <meta charset="utf-8" />
     <title>Registro de empleados</title>
     <link rel="stylesheet" href="{% static 'empleados/tabla_empleados_style.css' %}">
+    <style>
+      .selected {
+        background-color: #ffe0b2; /* Color para resaltar la fila seleccionada */
+        font-weight: bold;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body>
     <div id="controles_empleados">
-      <a href="{% url 'empleados:registrar_empleado' %}">
-    <button id="btn_registrar">Registrar Empleado</button>
-</a>
+      <a href="{% url 'empleados:registro_empleado' %}">
+        <button id="btn_registrar">Registrar Empleado</button>
+      </a>
       <button id="btn_modificar">Modificar Empleado</button>
-      <button id="btn_eliminar">Eliminar Empleado</button>
+      <button id="btn_eliminar" disabled>Eliminar Empleado</button>
       <input type="text" id="campo_buscar" placeholder="Buscar por ID o Nombre..." />
       <button id="btn_buscar">Buscar</button>
     </div>
-    <!-- tabla_empleados: Tabla dinamica para empleados-->
     <table id="tabla_empleados" class="display">
       <thead>
         <tr>
-          <!--Encabezados, no dinamicos-->
           <th>ID</th>
           <th>Nombre</th>
           <th>Cargo</th>
-          <th>Salario diario</th>
-          <th>Dias laborados por semana</th>
-          <th>Dias vacacion</th>
-          <th>Recargo vacacional</th>
-          <th>Dias aguinaldo anual</th>
+          <th>Salario Diario</th>
+          <th>Días Laborados/Semana</th>
+          <th>Horas Laboradas/Diarias</th>
+          <th>Días Vacaciones/Anual</th>
+          <th>Recargo Vacaciones</th>
+          <th>Días Aguinaldo/Anual</th>
           <th>Eficiencia</th>
-          <th>Costo real ajustado</th>
-          <th>Salario bruto</th>
-          <th>Total deducciones</th>
-          <th>Pago liquido</th>
+          <th>Costo Real/Hora</th>
+          <th>Salario Bruto Mensual</th>
+          <th>Aporte Patronal ISSS</th>
+          <th>Aporte Patronal AFP</th>
+          <th>Deducción ISSS</th>
+          <th>Deducción AFP</th>
+          <th>Total Deducciones</th>
+          <th>Pago Líquido</th>
         </tr>
       </thead>
       <tbody>
         {% for empleado in empleados %}
-        <tr>
+        <tr data-pk="{{ empleado.pk }}"> 
           <td>{{ empleado.id }}</td>
           <td>{{ empleado.nombre }}</td>
           <td>{{ empleado.cargo }}</td>
-          <td>{{ empleado.salario_diario }}</td>
-          <td>{{ empleado.dias_laborados_semana }}</td>
-          <td>{{ empleado.dias_vacaciones_anual }}</td>
-          <td>{{ empleado.recargo_vacaciones }}</td>
-          <td>{{ empleado.dias_aguinaldo_anual }}</td>
-          <td>{{ empleado.eficiencia}}</td>
-          <td>{{ empleado.costo_real_hora_ajustado }}</td>
-          <td>{{ empleado.salario_bruto_mensual_calculado }}</td>
-          <td>{{ empleado.total_deducciones_mensual }}</td>
-          <td>{{ empleado.pago_liquido_mensual }}</td>
+          <td>{{ empleado.salario_diario|default:"N/A" }}</td>
+          <td>{{ empleado.dias_laborados_semana|default:"N/A" }}</td>
+          <td>{{ empleado.horas_laboradas_diarias|default:"N/A" }}</td>
+          <td>{{ empleado.dias_vacaciones_anual|default:"N/A" }}</td>
+          <td>{{ empleado.recargo_vacaciones|default:"N/A" }}</td>
+          <td>{{ empleado.dias_aguinaldo_anual|default:"N/A" }}</td>
+          <td>{{ empleado.eficiencia|default:"N/A" }}</td>
+          <td>{{ empleado.costo_real_hora_ajustado|default:"N/A" }}</td>
+          <td>{{ empleado.salario_bruto_mensual_calculado|default:"N/A" }}</td>
+          <td>{{ empleado.aporte_patronal_isss_mensual|default:"N/A" }}</td>
+          <td>{{ empleado.aporte_patronal_afp_mensual|default:"N/A" }}</td>
+          <td>{{ empleado.deduccion_isss_mensual|default:"N/A" }}</td>
+          <td>{{ empleado.deduccion_afp_mensual|default:"N/A" }}</td>
+          <td>{{ empleado.total_deducciones_mensual|default:"N/A" }}</td>
+          <td>{{ empleado.pago_liquido_mensual|default:"N/A" }}</td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="13">No hay empleados registrados</td>
+          <td colspan="18">No hay empleados registrados</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+
+    <form id="delete-form" method="POST" style="display:none;"> 
+      {% csrf_token %}
+    </form>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+    $(document).ready(function() {
+        const tablaEmpleados = $('#tabla_empleados');
+        const botonEliminar = $('#btn_eliminar');
+        const deleteForm = $('#delete-form');
+        let selectedRowPk = null;
+        
+        // --- A. Lógica de Doble Clic para Selección ---
+        tablaEmpleados.find('tbody tr').dblclick(function() {
+            // 1. Limpiar selección previa
+            tablaEmpleados.find('tbody tr').removeClass('selected');
+            
+            // 2. Seleccionar la fila actual
+            $(this).addClass('selected');
+            
+            // 3. Obtener y almacenar el ID (pk)
+            selectedRowPk = $(this).data('pk');
+
+            // 4. Habilitar el botón de eliminar
+            botonEliminar.prop('disabled', false);
+        });
+
+        // --- B. Lógica del Botón 'Eliminar Empleado' ---
+        botonEliminar.click(function() {
+            if (selectedRowPk) {
+                // Confirmación al usuario
+                if (confirm(`¿Estás seguro que deseas eliminar al empleado con ID ${selectedRowPk}?`)) {
+                    
+                    // Construir la URL de eliminación: /empleados/eliminar/<pk>/
+                    // El patrón de URL es siempre '/empleados/eliminar/<pk>/'
+                    let deleteUrl = '/empleados/eliminar/' + selectedRowPk + '/';
+                    
+                    // Establecer la acción del formulario
+                    deleteForm.attr('action', deleteUrl);
+                    
+                    // Enviar el formulario POST para ejecutar la eliminación en Django
+                    deleteForm.submit();
+                }
+            } else {
+                alert('Por favor, haz doble clic en una fila para seleccionarla antes de eliminar.');
+            }
+        });
+        
+        // Optional: Deseleccionar al presionar ESC
+        $(document).keyup(function(e) {
+            if (e.key === "Escape") { 
+                tablaEmpleados.find('tbody tr').removeClass('selected');
+                selectedRowPk = null;
+                botonEliminar.prop('disabled', true);
+            }
+        });
+    });
+    </script>
   </body>
 </html>

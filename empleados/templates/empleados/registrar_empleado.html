@@ -8,71 +8,149 @@
     <link rel="stylesheet" href="{% static 'empleados/registrar_empleados_style.css' %}">
 </head>
 <body>
-<div class="container-fluid" style="max-width: 1200px; margin: 0 auto;">
-    <h1 class="page-title">{{ page_title }}</h1>
-    
-    {% if error_message %}
-    <div class="alert-error">
-        {{ error_message }}
-    </div>
-    {% endif %}
-
-    {% if form.non_field_errors %}
-    <div class="alert-error">
-        <ul style="margin: 0; padding-left: 20px;">
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-
-    <form method="post">
-        {% csrf_token %}
+    <div class="container-fluid" style="max-width: 1200px; margin: 0 auto;">
+        <h1 class="page-title">{{ page_title }}</h1>
         
-        <div class="form-section">
-            <div class="section-header">Datos Básicos del Empleado</div>
-            <div style="padding: 15px; border: 1px solid #dee2e6; border-top: none;">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="{{ form.nombre.id_for_label }}">Nombre Completo *</label>
-                        {{ form.nombre }}
-                        {% if form.nombre.help_text %}
-                            <span class="helptext">{{ form.nombre.help_text }}</span>
-                        {% endif %}
-                        {% if form.nombre.errors %}
-                            <ul class="errorlist">{{ form.nombre.errors }}</ul>
-                        {% endif %}
+        {% if error_message %}
+        <div class="alert-error">
+            {{ error_message }}
+        </div>
+        {% endif %}
+    
+        {% if form.non_field_errors %}
+        <div class="alert-error">
+            <ul style="margin: 0; padding-left: 20px;">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-section">
+                <div class="section-header">Datos Básicos del Empleado</div>
+                <div style="padding: 15px; border: 1px solid #dee2e6; border-top: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.nombre.id_for_label }}">Nombre Completo *</label>
+                            {{ form.nombre }}
+                            {% if form.nombre.help_text %}
+                                <span class="helptext">{{ form.nombre.help_text }}</span>
+                            {% endif %}
+                            {% if form.nombre.errors %}
+                                <ul class="errorlist">{{ form.nombre.errors }}</ul>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.cargo.id_for_label }}">Cargo *</label>
+                            {{ form.cargo }}
+                            {% if form.cargo.help_text %}
+                                <span class="helptext">{{ form.cargo.help_text }}</span>
+                            {% endif %}
+                            {% if form.cargo.errors %}
+                                <ul class="errorlist">{{ form.cargo.errors }}</ul>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="{{ form.cargo.id_for_label }}">Cargo *</label>
-                        {{ form.cargo }}
-                        {% if form.cargo.help_text %}
-                            <span class="helptext">{{ form.cargo.help_text }}</span>
+                        <label for="{{ form.salario_diario.id_for_label }}">Salario Diario ($) *</label>
+                        {{ form.salario_diario }}
+                        {% if form.salario_diario.help_text %}
+                            <span class="helptext">{{ form.salario_diario.help_text }}</span>
                         {% endif %}
-                        {% if form.cargo.errors %}
-                            <ul class="errorlist">{{ form.cargo.errors }}</ul>
+                        {% if form.salario_diario.errors %}
+                            <ul class="errorlist">{{ form.salario_diario.errors }}</ul>
                         {% endif %}
                     </div>
-                </div>
-                <div class="form-group">
-                    <label for="{{ form.salario_diario.id_for_label }}">Salario Diario ($) *</label>
-                    {{ form.salario_diario }}
-                    {% if form.salario_diario.help_text %}
-                        <span class="helptext">{{ form.salario_diario.help_text }}</span>
-                    {% endif %}
-                    {% if form.salario_diario.errors %}
-                        <ul class="errorlist">{{ form.salario_diario.errors }}</ul>
-                    {% endif %}
                 </div>
             </div>
-        </div>
-
-        <div class="button-group">
-            <button type="submit" class="btn-accion">Guardar Empleado</button>
-            <a href="{% url 'empleados:tabla_empleados' %}" class="btn-accion">Cancelar y Volver</a>
-        </div>
-    </form>
-</div>
-</body>
-</html>
+    
+            <div class="form-section">
+                <div class="section-header">Parámetros Laborales</div>
+                <div style="padding: 15px; border: 1px solid #dee2e6; border-top: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.dias_laborados_semana.id_for_label }}">Días Laborados por Semana</label>
+                            {{ form.dias_laborados_semana }}
+                            {% if form.dias_laborados_semana.help_text %}
+                                <span class="helptext">{{ form.dias_laborados_semana.help_text }}</span>
+                            {% endif %}
+                            {% if form.dias_laborados_semana.errors %}
+                                <ul class="errorlist">{{ form.dias_laborados_semana.errors }}</ul>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.horas_laboradas_diarias.id_for_label }}">Horas Laboradas Diarias</label>
+                            {{ form.horas_laboradas_diarias }}
+                            {% if form.horas_laboradas_diarias.help_text %}
+                                <span class="helptext">{{ form.horas_laboradas_diarias.help_text }}</span>
+                            {% endif %}
+                            {% if form.horas_laboradas_diarias.errors %}
+                                <ul class="errorlist">{{ form.horas_laboradas_diarias.errors }}</ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <div class="form-section">
+                <div class="section-header">Beneficios y Prestaciones</div>
+                <div style="padding: 15px; border: 1px solid #dee2e6; border-top: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.dias_vacaciones_anual.id_for_label }}">Días de Vacaciones Anuales</label>
+                            {{ form.dias_vacaciones_anual }}
+                            {% if form.dias_vacaciones_anual.help_text %}
+                                <span class="helptext">{{ form.dias_vacaciones_anual.help_text }}</span>
+                            {% endif %}
+                            {% if form.dias_vacaciones_anual.errors %}
+                                <ul class="errorlist">{{ form.dias_vacaciones_anual.errors }}</ul>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.recargo_vacaciones.id_for_label }}">Recargo sobre Vacaciones</label>
+                            {{ form.recargo_vacaciones }}
+                            {% if form.recargo_vacaciones.help_text %}
+                                <span class="helptext">{{ form.recargo_vacaciones.help_text }}</span>
+                            {% endif %}
+                            {% if form.recargo_vacaciones.errors %}
+                                <ul class="errorlist">{{ form.recargo_vacaciones.errors }}</ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="{{ form.dias_aguinaldo_anual.id_for_label }}">Días de Aguinaldo Anual</label>
+                            {{ form.dias_aguinaldo_anual }}
+                            {% if form.dias_aguinaldo_anual.help_text %}
+                                <span class="helptext">{{ form.dias_aguinaldo_anual.help_text }}</span>
+                            {% endif %}
+                            {% if form.dias_aguinaldo_anual.errors %}
+                                <ul class="errorlist">{{ form.dias_aguinaldo_anual.errors }}</ul>
+                            {% endif %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.eficiencia.id_for_label }}">Factor de Eficiencia</label>
+                            {{ form.eficiencia }}
+                            {% if form.eficiencia.help_text %}
+                                <span class="helptext">{{ form.eficiencia.help_text }}</span>
+                            {% endif %}
+                            {% if form.eficiencia.errors %}
+                                <ul class="errorlist">{{ form.eficiencia.errors }}</ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <div class="button-group">
+                <button type="submit" class="btn-accion">Guardar Empleado</button>
+                <a href="{% url 'empleados:tabla_empleados' %}" class="btn-accion">Cancelar y Volver</a>
+            </div>
+        </form>
+    </div>
+    </body>
+    </html>
