@@ -1,0 +1,1322 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .section-header {
+        background-color: #212529;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        margin-bottom: 0;
+    }
+    
+    .btn-accion {
+        background-color: #212529;
+        color: white;
+        border: none;
+    }
+    
+    .btn-accion:hover {
+        background-color: #424649;
+        color: white;
+    }
+    
+    .table-bordered {
+        border: 1px solid #dee2e6;
+    }
+    
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+    }
+    
+    .table-bordered th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .page-title {
+        text-align: center;
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 30px;
+        margin-top: 20px;
+    }
+    
+    .total-row {
+        background-color: #f8f9fa;
+        font-weight: bold;
+    }
+    
+    .readonly-field {
+        background-color: #e9ecef;
+    }
+</style>
+
+<div class="container-fluid" style="max-width: 1200px; margin: 0 auto;">
+    <h1 class="page-title">Método de Estimación de Costos 'UCP'</h1>
+    
+    <!-- Sección 1: Clasificación de actores sin ajuste -->
+    <div class="mb-4">
+        <div class="section-header">Clasificación de actores sin ajuste</div>
+        <div class="d-flex gap-3">
+            <div class="flex-grow-1">
+                <table class="table table-bordered" id="tablaActores">
+            <thead>
+                <tr>
+                    <th>ACTOR</th>
+                    <th>CANTIDAD</th>
+                    <th>TIPO</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyActores">
+                <tr>
+                    <td><input type="text" class="form-control form-control-sm" name="actor[]" placeholder="Ej: Usuario"></td>
+                    <td><input type="number" class="form-control form-control-sm cantidad-actor" name="cantidad_actor[]" value="1" min="1" onchange="calcularActores()"></td>
+                    <td>
+                        <select class="form-select form-select-sm tipo-actor" name="tipo_actor[]" onchange="calcularActores()">
+                            <option value="">Selecciona</option>
+                            <option value="simple">Simple</option>
+                            <option value="medio">Medio</option>
+                            <option value="complejo">Complejo</option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+            </div>
+            <div class="d-flex flex-column gap-2 align-items-start">
+                <button type="button" class="btn btn-accion btn-sm" onclick="agregarFilaActores()">
+                    Agregar Fila
+                </button>
+                <button type="button" class="btn btn-accion btn-sm" onclick="eliminarFilaActores()">
+                    Eliminar Fila
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tabla de resumen de tipos de actores -->
+        <div class="mt-3">
+            <table class="table table-bordered" id="tablaTiposActores">
+                <thead>
+                    <tr>
+                        <th>TIPOS DE ACTORES</th>
+                        <th>CUENTA</th>
+                        <th>FACTOR</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyTiposActores">
+                    <tr>
+                        <td>Simple</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaSimple" value="0" readonly></td>
+                        <td>1</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalSimple" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td>Medio</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaMedio" value="0" readonly></td>
+                        <td>2</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalMedio" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td>Complejo</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaComplejo" value="0" readonly></td>
+                        <td>3</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalComplejo" value="0" readonly></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>TOTAL DE UWA</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalUWA" value="0" readonly></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 2: Clasificación de casos de uso sin ajuste 'Enfoque transaccional' -->
+    <div class="mb-4">
+        <div class="section-header">Clasificación de casos de uso sin ajuste 'Enfoque transaccional'</div>
+        <div class="d-flex gap-3">
+            <div class="flex-grow-1">
+                <table class="table table-bordered" id="tablaCasosUso">
+            <thead>
+                <tr>
+                    <th>CASO DE USO</th>
+                    <th>TRANSACCIONES</th>
+                    <th>TIPO</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyCasosUso">
+                <tr>
+                    <td><input type="text" class="form-control form-control-sm" name="caso_uso[]" placeholder="Ej: Catálogo de cuentas"></td>
+                    <td><input type="number" class="form-control form-control-sm transacciones-caso-uso" name="transacciones[]" value="0" min="0" onchange="calcularTipoCasosUso(this)"></td>
+                    <td><input type="text" class="form-control form-control-sm tipo-caso-uso readonly-field" name="tipo_caso_uso[]" value="" readonly></td>
+                </tr>
+            </tbody>
+        </table>
+            </div>
+            <div class="d-flex flex-column gap-2 align-items-start">
+                <button type="button" class="btn btn-accion btn-sm" onclick="agregarFilaCasosUso()">
+                    Agregar Fila
+                </button>
+                <button type="button" class="btn btn-accion btn-sm" onclick="eliminarFilaCasosUso()">
+                    Eliminar Fila
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tabla de resumen de tipos de casos de uso -->
+        <div class="mt-3">
+            <table class="table table-bordered" id="tablaTiposCasosUso">
+                <thead>
+                    <tr>
+                        <th>TIPOS DE CASOS DE USO</th>
+                        <th>CUENTA</th>
+                        <th>FACTOR</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyTiposCasosUso">
+                    <tr>
+                        <td>Simple</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaSimpleUC" value="0" readonly></td>
+                        <td>5</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalSimpleUC" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td>Medio</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaMedioUC" value="0" readonly></td>
+                        <td>10</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalMedioUC" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td>Complejo</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="cuentaComplejoUC" value="0" readonly></td>
+                        <td>15</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalComplejoUC" value="0" readonly></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="3"><strong>TOTAL DE UWC</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalUWC" value="0" readonly></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 3: PA + PCU = UUCP -->
+    <div class="mb-4">
+        <div class="section-header"> UWA + PCU = UUCP</div>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Producto de actores</th>
+                    <th>Producto de casos de uso</th>
+                    <th>UUCP</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="text" class="form-control form-control-sm readonly-field" id="productoActores" value="0" readonly></td>
+                    <td><input type="text" class="form-control form-control-sm readonly-field" id="productoCasosUso" value="0" readonly></td>
+                    <td><input type="text" class="form-control form-control-sm readonly-field" id="uucp" value="0" readonly></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Sección 4: Factores Tecnicos 'TF' -->
+    <div class="mb-4">
+        <div class="section-header">Factores Tecnicos 'TF'</div>
+        <table class="table table-bordered" id="tablaFactoresTecnicos">
+            <thead>
+                <tr>
+                    <th>Factor</th>
+                    <th>Descripción</th>
+                    <th>Peso</th>
+                    <th>Valor</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>T1</td>
+                    <td>Sistema distribuido</td>
+                    <td>2</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t1" onchange="calcularImpacto(this, 2)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t1" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T2</td>
+                    <td>Objetivos de rendimiento</td>
+                    <td>2</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t2" onchange="calcularImpacto(this, 2)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t2" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T3</td>
+                    <td>Eficiencia de rendimiento</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t3" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t3" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T4</td>
+                    <td>Procesamiento complejo</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t4" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t4" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T5</td>
+                    <td>Código reutilizable</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t5" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t5" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T6</td>
+                    <td>Facilidad de instalación</td>
+                    <td>0.5</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t6" onchange="calcularImpacto(this, 0.5)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t6" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T7</td>
+                    <td>Facilidad de Uso</td>
+                    <td>0.5</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t7" onchange="calcularImpacto(this, 0.5)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t7" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T8</td>
+                    <td>Portable</td>
+                    <td>2</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t8" onchange="calcularImpacto(this, 2)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t8" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T9</td>
+                    <td>Facilidad de cambios</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t9" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t9" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T10</td>
+                    <td>Concurrencia de uso</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t10" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t10" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T11</td>
+                    <td>Seguridad</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t11" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t11" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T12</td>
+                    <td>Acceso para terceros</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t12" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t12" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>T13</td>
+                    <td>Necesidades de entrenamiento</td>
+                    <td>1</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_t13" onchange="calcularImpacto(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="form-control form-control-sm impacto" name="impacto_t13" value="0" readonly></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4"><strong>TOTAL DE TF</strong></td>
+                    <td><input type="text" class="form-control form-control-sm readonly-field" id="totalTF" value="0" readonly></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <!-- Sección 5: Cálculo de TCF -->
+    <div class="mb-4">
+        <div class="section-header">Cálculo de TCF </div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <div class="mb-2">
+                <strong>Fórmula:</strong> TCF = 0.6 + (0.01 x TF)
+            </div>
+            <table class="table table-bordered" style="max-width: 600px;">
+                <thead>
+                    <tr>
+                        <th>TF (Total de Factores Técnicos)</th>
+                        <th>TCF</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="tfValue" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="tcfValue" value="0" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 6: Factores Ambientales 'EF' -->
+    <div class="mb-4">
+        <div class="section-header">Factores Ambientales 'EF'</div>
+        <table class="table table-bordered" id="tablaFactoresAmbientales">
+            <thead>
+                <tr>
+                    <th>FACTOR</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th>VALOR</th>
+                    <th>PESO</th>
+                    <th>TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>E1</td>
+                    <td>Familiarizado con el proyecto de desarrollo</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e1" onchange="calcularImpactoEF(this, 1.5)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>1.5</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e1" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E2</td>
+                    <td>Experiencia en la aplicación</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e2" onchange="calcularImpactoEF(this, 0.5)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>0.5</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e2" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E3</td>
+                    <td>Experiencia en orientación a objetos</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e3" onchange="calcularImpactoEF(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>1</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e3" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E4</td>
+                    <td>Capacidad del analista líder</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e4" onchange="calcularImpactoEF(this, 0.5)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>0.5</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e4" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E5</td>
+                    <td>Motivación del equipo</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e5" onchange="calcularImpactoEF(this, 1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>1</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e5" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E6</td>
+                    <td>Estabilidad de los requerimientos</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e6" onchange="calcularImpactoEF(this, 2)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>2</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e6" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E7</td>
+                    <td>Personal a tiempo parcial</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e7" onchange="calcularImpactoEF(this, -1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>-1</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e7" value="0" readonly></td>
+                </tr>
+                <tr>
+                    <td>E8</td>
+                    <td>Lenguaje de programación complejo</td>
+                    <td>
+                        <select class="form-select form-select-sm" name="evaluacion_e8" onchange="calcularImpactoEF(this, -1)">
+                            <option value="">Selecciona</option>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </td>
+                    <td>-1</td>
+                    <td><input type="text" class="form-control form-control-sm impacto-ef" name="impacto_e8" value="0" readonly></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="4"><strong>TOTAL DE EF</strong></td>
+                    <td><input type="text" class="form-control form-control-sm readonly-field" id="totalEF" value="0" readonly></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <!-- Sección 7: Cálculo de EF -->
+    <div class="mb-4">
+        <div class="section-header">Cálculo de EF</div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <div class="mb-2">
+                <strong>Fórmula:</strong> EF = 1.4 + (-0.03 x EF)
+            </div>
+            <table class="table table-bordered" style="max-width: 600px;">
+                <thead>
+                    <tr>
+                        <th>Total EF (Factores Ambientales)</th>
+                        <th>EF (Factor Ambiental Ajustado)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="totalEFValue" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="efValue" value="0" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 8: Cálculo de UCP -->
+    <div class="mb-4">
+        <div class="section-header">Cálculo de UCP </div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <div class="mb-2">
+                <strong>Fórmula:</strong> UCP = UUCP x TCF x EF
+            </div>
+            <table class="table table-bordered" style="max-width: 800px;">
+                <thead>
+                    <tr>
+                        <th>UUCP</th>
+                        <th>TCF</th>
+                        <th>EF</th>
+                        <th>UCP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="uucpValue" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="tcfValueUCP" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="efValueUCP" value="0" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="ucpValue" value="0" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 9: Cálculo del Esfuerzo -->
+    <div class="mb-4">
+        <div class="section-header">Cálculo del Esfuerzo </div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <p><strong>La propuesta consiste en utilizar los EF para estimar el esfuerzo individual de cada miembro del equipo de trabajo.</strong></p>
+            
+            <!-- Conteo de factores -->
+            <div class="mb-3">
+                <h6>Conteo de Factores Ambientales:</h6>
+                <table class="table table-bordered" style="max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Conteo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Factores E1 a E6 por debajo del valor medio (< 3)</td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="conteoDebajo" value="0" readonly></td>
+                        </tr>
+                        <tr>
+                            <td>Factores E7 a E8 por encima del valor medio (> 3)</td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="conteoEncima" value="0" readonly></td>
+                        </tr>
+                        <tr class="total-row">
+                            <td><strong>Total de Factores</strong></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="totalConteo" value="0" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Tabla de conversión CF -->
+            <div class="mb-3">
+                <h6>Factor de Conversión Horas-Persona/UCP:</h6>
+                <table class="table table-bordered" style="max-width: 600px;">
+                    <thead>
+                        <tr>
+                            <th>HORAS-PERSONA (CF)</th>
+                            <th>INTERVALO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>20</td>
+                            <td>≤ 2</td>
+                        </tr>
+                        <tr>
+                            <td>28</td>
+                            <td>3 - 4</td>
+                        </tr>
+                        <tr>
+                            <td>36</td>
+                            <td>≥ 5</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Cálculo del esfuerzo -->
+            <div class="mb-3">
+                <h6>Cálculo del Esfuerzo:</h6>
+                <div class="mb-2">
+                    <strong>Fórmula:</strong> E = UCP x CF
+                </div>
+                <table class="table table-bordered" style="max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>UCP</th>
+                            <th>CF (Factor de Conversión)</th>
+                            <th>E (Esfuerzo en Horas-Persona)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="ucpValueEsfuerzo" value="0" readonly></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="cfValue" value="0" readonly></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="esfuerzoValue" value="0" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Esfuerzo por persona -->
+            <div class="mb-3">
+                <h6>Esfuerzo Horas por Persona:</h6>
+                <table class="table table-bordered" style="max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Esfuerzo Total (Horas-Persona)</th>
+                            <th>Número de Personas</th>
+                            <th>Esfuerzo por Persona (Horas)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="esfuerzoTotalPersona" value="0" readonly></td>
+                            <td><input type="number" class="form-control form-control-sm" id="numeroPersonas" value="1" min="1" onchange="calcularEsfuerzoPorPersona()"></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="esfuerzoPorPersona" value="0" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección 10: Tabla Resumen -->
+    <div class="mb-4">
+        <div class="section-header">Tabla Resumen - Valores Calculados</div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 50%;">Descripción</th>
+                        <th style="width: 50%;">Puntos de casos de uso / Valores</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>UUCP</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenUUCP" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><strong>TCF</strong> </td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenTCF" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><strong>EF</strong> </td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenEF" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><strong>UCP</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenUCP" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><strong>CF</strong> (Factor de Conversión - Horas)</td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenCF" value="0" readonly></td>
+                    </tr>
+                    <tr class="table-info">
+                        <td><strong>Total Horas-Esfuerzo</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="resumenEsfuerzoTotal" value="0" readonly></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Número de Personas</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenNumPersonas" value="1" readonly></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Horas-Persona</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="resumenHorasPersona" value="0" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Sección 11: Gastos Mensuales y Costo Total -->
+    <div class="mb-4">
+        <div class="section-header">Gastos Mensuales y Costo del Proyecto</div>
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <!-- Tabla de gastos mensuales -->
+            <div class="mb-3">
+                <h6>Gastos Mensuales Individuales:</h6>
+                <table class="table table-bordered" style="max-width: 600px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Monto ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Electricidad</strong></td>
+                            <td><input type="number" class="form-control form-control-sm gasto-individual" id="gastoElectricidad" value="0" min="0" step="0.01" onchange="calcularCostos()"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Internet</strong></td>
+                            <td><input type="number" class="form-control form-control-sm gasto-individual" id="gastoInternet" value="0" min="0" step="0.01" onchange="calcularCostos()"></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Otros gastos</strong></td>
+                            <td><input type="number" class="form-control form-control-sm gasto-individual" id="gastosOtros" value="0" min="0" step="0.01" onchange="calcularCostos()"></td>
+                        </tr>
+                        <tr class="table-info">
+                            <td><strong>Total</strong></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="totalGastos" value="0.00" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Cálculos de costos -->
+            <div class="mb-3">
+                <h6>Cálculos de Costo:</h6>
+                <table class="table table-bordered" style="max-width: 800px;">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Descripción</th>
+                            <th>Fórmula</th>
+                            <th>Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Costo por Hora</strong></td>
+                            <td>Total Gastos ÷ Horas-Persona</td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="costoPorHora" value="0.00" readonly></td>
+                        </tr>
+                        <tr class="table-success">
+                            <td><strong>Costo Total del Proyecto</strong></td>
+                            <td>Costo por Hora × Total Horas-Esfuerzo</td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="costoTotalProyecto" value="0.00" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Funciones para Casos de Uso
+    function agregarFilaCasosUso() {
+        const tbody = document.getElementById('tbodyCasosUso');
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm" name="caso_uso[]" placeholder="Ej: Catálogo de cuentas"></td>
+            <td><input type="number" class="form-control form-control-sm transacciones-caso-uso" name="transacciones[]" value="0" min="0" onchange="calcularTipoCasosUso(this)"></td>
+            <td><input type="text" class="form-control form-control-sm tipo-caso-uso readonly-field" name="tipo_caso_uso[]" value="" readonly></td>
+        `;
+        tbody.appendChild(nuevaFila);
+    }
+    
+    function eliminarFilaCasosUso() {
+        const tbody = document.getElementById('tbodyCasosUso');
+        if (tbody.rows.length > 1) {
+            tbody.removeChild(tbody.lastChild);
+            calcularCasosUso();
+        }
+    }
+    
+    function calcularTipoCasosUso(input) {
+        const row = input.closest('tr');
+        const transacciones = parseFloat(input.value) || 0;
+        const tipoInput = row.querySelector('.tipo-caso-uso');
+        
+        // Determinar el tipo según el número de transacciones
+        let tipo = '';
+        if (transacciones >= 1 && transacciones <= 3) {
+            tipo = 'Simple';
+        } else if (transacciones >= 4 && transacciones <= 7) {
+            tipo = 'Medio';
+        } else if (transacciones >= 8) {
+            tipo = 'Complejo';
+        }
+        
+        tipoInput.value = tipo;
+        calcularCasosUso();
+    }
+    
+    function calcularCasosUso() {
+        const filas = document.querySelectorAll('#tbodyCasosUso tr');
+        
+        // Factores según el tipo de caso de uso
+        const factores = {
+            'Simple': 5,
+            'Medio': 10,
+            'Complejo': 15
+        };
+        
+        // Contadores por tipo
+        let cuentaSimple = 0;
+        let cuentaMedio = 0;
+        let cuentaComplejo = 0;
+        let totalSimple = 0;
+        let totalMedio = 0;
+        let totalComplejo = 0;
+        
+        // Recorrer todas las filas y contar por tipo
+        filas.forEach(fila => {
+            const tipoInput = fila.querySelector('.tipo-caso-uso');
+            const tipo = tipoInput ? tipoInput.value : '';
+            
+            if (tipo === 'Simple') {
+                cuentaSimple += 1;
+                totalSimple += factores['Simple'];
+            } else if (tipo === 'Medio') {
+                cuentaMedio += 1;
+                totalMedio += factores['Medio'];
+            } else if (tipo === 'Complejo') {
+                cuentaComplejo += 1;
+                totalComplejo += factores['Complejo'];
+            }
+        });
+        
+        // Actualizar la tabla de resumen
+        document.getElementById('cuentaSimpleUC').value = cuentaSimple;
+        document.getElementById('cuentaMedioUC').value = cuentaMedio;
+        document.getElementById('cuentaComplejoUC').value = cuentaComplejo;
+        
+        document.getElementById('totalSimpleUC').value = totalSimple;
+        document.getElementById('totalMedioUC').value = totalMedio;
+        document.getElementById('totalComplejoUC').value = totalComplejo;
+        
+        // Calcular total UWC (Unadjusted Weight of Use Cases)
+        const totalUWC = totalSimple + totalMedio + totalComplejo;
+        document.getElementById('totalUWC').value = totalUWC;
+        
+        // Actualizar el producto de casos de uso en la sección UUCP
+        document.getElementById('productoCasosUso').value = totalUWC;
+        calcularUUCP();
+    }
+    
+    // Funciones para Actores
+    function agregarFilaActores() {
+        const tbody = document.getElementById('tbodyActores');
+        const nuevaFila = document.createElement('tr');
+        nuevaFila.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm" name="actor[]" placeholder="Ej: Usuario"></td>
+            <td><input type="number" class="form-control form-control-sm cantidad-actor" name="cantidad_actor[]" value="1" min="1" onchange="calcularActores()"></td>
+            <td>
+                <select class="form-select form-select-sm tipo-actor" name="tipo_actor[]" onchange="calcularActores()">
+                    <option value="">Selecciona</option>
+                    <option value="simple">Simple</option>
+                    <option value="medio">Medio</option>
+                    <option value="complejo">Complejo</option>
+                </select>
+            </td>
+        `;
+        tbody.appendChild(nuevaFila);
+    }
+    
+    function eliminarFilaActores() {
+        const tbody = document.getElementById('tbodyActores');
+        if (tbody.rows.length > 1) {
+            tbody.removeChild(tbody.lastChild);
+            calcularActores();
+        }
+    }
+    
+    function calcularActores() {
+        const filas = document.querySelectorAll('#tbodyActores tr');
+        
+        // Factores según el tipo de actor
+        const factores = {
+            'simple': 1,
+            'medio': 2,
+            'complejo': 3
+        };
+        
+        // Contadores por tipo
+        let cuentaSimple = 0;
+        let cuentaMedio = 0;
+        let cuentaComplejo = 0;
+        let totalSimple = 0;
+        let totalMedio = 0;
+        let totalComplejo = 0;
+        
+        // Recorrer todas las filas y contar por tipo
+        filas.forEach(fila => {
+            const tipoSelect = fila.querySelector('.tipo-actor');
+            const cantidadInput = fila.querySelector('.cantidad-actor');
+            
+            if (tipoSelect && cantidadInput) {
+                const tipo = tipoSelect.value;
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                
+                if (tipo === 'simple') {
+                    cuentaSimple += cantidad;
+                    totalSimple += cantidad * factores['simple'];
+                } else if (tipo === 'medio') {
+                    cuentaMedio += cantidad;
+                    totalMedio += cantidad * factores['medio'];
+                } else if (tipo === 'complejo') {
+                    cuentaComplejo += cantidad;
+                    totalComplejo += cantidad * factores['complejo'];
+                }
+            }
+        });
+        
+        // Actualizar la tabla de resumen
+        document.getElementById('cuentaSimple').value = cuentaSimple;
+        document.getElementById('cuentaMedio').value = cuentaMedio;
+        document.getElementById('cuentaComplejo').value = cuentaComplejo;
+        
+        document.getElementById('totalSimple').value = totalSimple;
+        document.getElementById('totalMedio').value = totalMedio;
+        document.getElementById('totalComplejo').value = totalComplejo;
+        
+        // Calcular total UWA (Unadjusted Weight of Actors)
+        const totalUWA = totalSimple + totalMedio + totalComplejo;
+        document.getElementById('totalUWA').value = totalUWA;
+        
+        // Actualizar el producto de actores en la sección UUCP
+        document.getElementById('productoActores').value = totalUWA;
+        calcularUUCP();
+    }
+    
+    // Función para calcular UUCP
+    function calcularUUCP() {
+        const productoActores = parseFloat(document.getElementById('productoActores').value) || 0;
+        const productoCasosUso = parseFloat(document.getElementById('productoCasosUso').value) || 0;
+        const uucp = productoActores + productoCasosUso;
+        document.getElementById('uucp').value = uucp.toFixed(2);
+        document.getElementById('resumenUUCP').value = uucp.toFixed(2);
+        calcularUCP();
+    }
+    
+    // Función para calcular Impacto de Factores Técnicos
+    function calcularImpacto(select, peso) {
+        const row = select.closest('tr');
+        const evaluacion = parseFloat(select.value) || 0;
+        const impacto = evaluacion * peso;
+        row.querySelector('.impacto').value = impacto.toFixed(1);
+        calcularTotalTF();
+    }
+    
+    // Función para calcular el total de factores técnicos
+    function calcularTotalTF() {
+        const impactos = document.querySelectorAll('.impacto');
+        let totalTF = 0;
+        
+        impactos.forEach(impacto => {
+            const valor = parseFloat(impacto.value) || 0;
+            totalTF += valor;
+        });
+        
+        document.getElementById('totalTF').value = totalTF.toFixed(1);
+        
+        // Calcular TCF usando la fórmula: TCF = 0.6 + (0.01 x TF)
+        const tcf = 0.6 + (0.01 * totalTF);
+        
+        // Actualizar los campos de TCF
+        document.getElementById('tfValue').value = totalTF.toFixed(1);
+        document.getElementById('tcfValue').value = tcf.toFixed(2);
+        document.getElementById('resumenTCF').value = tcf.toFixed(2);
+        calcularUCP();
+    }
+    
+    // Función para calcular Impacto de Factores Ambientales
+    function calcularImpactoEF(select, peso) {
+        const row = select.closest('tr');
+        const evaluacion = parseFloat(select.value) || 0;
+        const impacto = evaluacion * peso;
+        row.querySelector('.impacto-ef').value = impacto.toFixed(1);
+        calcularTotalEF();
+    }
+    
+    // Función para calcular el total de factores ambientales
+    function calcularTotalEF() {
+        const impactos = document.querySelectorAll('.impacto-ef');
+        let totalEF = 0;
+        
+        impactos.forEach(impacto => {
+            const valor = parseFloat(impacto.value) || 0;
+            totalEF += valor;
+        });
+        
+        document.getElementById('totalEF').value = totalEF.toFixed(1);
+        
+        // Calcular EF usando la fórmula: EF = 1.4 + (-0.03 x EF)
+        const ef = 1.4 + (-0.03 * totalEF);
+        
+        // Actualizar los campos de EF
+        document.getElementById('totalEFValue').value = totalEF.toFixed(1);
+        document.getElementById('efValue').value = ef.toFixed(2);
+        document.getElementById('resumenEF').value = ef.toFixed(2);
+        calcularUCP();
+    }
+    
+    // Función para calcular UCP usando la fórmula: UCP = UUCP x TCF x EF
+    function calcularUCP() {
+        const uucp = parseFloat(document.getElementById('uucp').value) || 0;
+        const tcf = parseFloat(document.getElementById('tcfValue').value) || 0;
+        const ef = parseFloat(document.getElementById('efValue').value) || 0;
+        
+        const ucp = uucp * tcf * ef;
+        
+        // Actualizar los campos de UCP
+        document.getElementById('uucpValue').value = uucp.toFixed(2);
+        document.getElementById('tcfValueUCP').value = tcf.toFixed(2);
+        document.getElementById('efValueUCP').value = ef.toFixed(2);
+        document.getElementById('ucpValue').value = ucp.toFixed(2);
+        document.getElementById('resumenUCP').value = ucp.toFixed(2);
+        
+        // Calcular el esfuerzo
+        calcularEsfuerzo();
+    }
+    
+    // Función para calcular el conteo de factores y el esfuerzo
+    function calcularEsfuerzo() {
+        // Obtener los valores de evaluación de los factores E1 a E6
+        let conteoDebajo = 0;
+        for (let i = 1; i <= 6; i++) {
+            const select = document.querySelector(`select[name="evaluacion_e${i}"]`);
+            if (select) {
+                const valor = parseFloat(select.value) || 0;
+                if (valor < 3) {
+                    conteoDebajo++;
+                }
+            }
+        }
+        
+        // Obtener los valores de evaluación de los factores E7 y E8
+        let conteoEncima = 0;
+        for (let i = 7; i <= 8; i++) {
+            const select = document.querySelector(`select[name="evaluacion_e${i}"]`);
+            if (select) {
+                const valor = parseFloat(select.value) || 0;
+                if (valor > 3) {
+                    conteoEncima++;
+                }
+            }
+        }
+        
+        // Calcular el total de factores
+        const totalConteo = conteoDebajo + conteoEncima;
+        
+        // Actualizar los campos de conteo
+        document.getElementById('conteoDebajo').value = conteoDebajo;
+        document.getElementById('conteoEncima').value = conteoEncima;
+        document.getElementById('totalConteo').value = totalConteo;
+        
+        // Determinar el CF según el intervalo
+        let cf = 0;
+        if (totalConteo <= 2) {
+            cf = 20;
+        } else if (totalConteo <= 4) {
+            cf = 28;
+        } else {
+            cf = 36;
+        }
+        
+        // Obtener el UCP
+        const ucp = parseFloat(document.getElementById('ucpValue').value) || 0;
+        
+        // Calcular el esfuerzo: E = UCP x CF
+        const esfuerzo = ucp * cf;
+        
+        // Actualizar los campos de esfuerzo
+        document.getElementById('ucpValueEsfuerzo').value = ucp.toFixed(2);
+        document.getElementById('cfValue').value = cf;
+        document.getElementById('esfuerzoValue').value = esfuerzo.toFixed(2);
+        document.getElementById('resumenCF').value = cf;
+        document.getElementById('resumenEsfuerzoTotal').value = esfuerzo.toFixed(2);
+        
+        // Actualizar el esfuerzo total para el cálculo por persona
+        document.getElementById('esfuerzoTotalPersona').value = esfuerzo.toFixed(2);
+        
+        // Calcular el esfuerzo por persona
+        calcularEsfuerzoPorPersona();
+    }
+    
+    // Función para calcular el esfuerzo por persona
+    function calcularEsfuerzoPorPersona() {
+        const esfuerzoTotal = parseFloat(document.getElementById('esfuerzoTotalPersona').value) || 0;
+        const numeroPersonas = parseFloat(document.getElementById('numeroPersonas').value) || 1;
+        
+        // Evitar división por cero
+        if (numeroPersonas === 0) {
+            document.getElementById('esfuerzoPorPersona').value = '0.00';
+            return;
+        }
+        
+        // Calcular el esfuerzo por persona
+        const esfuerzoPorPersona = esfuerzoTotal / numeroPersonas;
+        
+        // Actualizar el campo
+        document.getElementById('esfuerzoPorPersona').value = esfuerzoPorPersona.toFixed(2);
+        
+        // Actualizar la tabla resumen
+        document.getElementById('resumenNumPersonas').value = numeroPersonas;
+        document.getElementById('resumenHorasPersona').value = esfuerzoPorPersona.toFixed(2);
+        
+        // Calcular costos
+        calcularCostos();
+    }
+    
+    // Función para calcular los costos del proyecto
+    function calcularCostos() {
+        // Obtener los gastos individuales
+        const gastoElectricidad = parseFloat(document.getElementById('gastoElectricidad').value) || 0;
+        const gastoInternet = parseFloat(document.getElementById('gastoInternet').value) || 0;
+        const gastosOtros = parseFloat(document.getElementById('gastosOtros').value) || 0;
+        
+        // Calcular el total de gastos
+        const totalGastos = gastoElectricidad + gastoInternet + gastosOtros;
+        document.getElementById('totalGastos').value = totalGastos.toFixed(2);
+        
+        // Obtener las horas-persona y total horas-esfuerzo
+        const horasPersona = parseFloat(document.getElementById('resumenHorasPersona').value) || 0;
+        const totalHorasEsfuerzo = parseFloat(document.getElementById('resumenEsfuerzoTotal').value) || 0;
+        
+        // Calcular costo por hora = Total Gastos / Horas-Persona
+        let costoPorHora = 0;
+        if (horasPersona > 0) {
+            costoPorHora = totalGastos / horasPersona;
+        }
+        document.getElementById('costoPorHora').value = costoPorHora.toFixed(2);
+        
+        // Calcular costo total del proyecto = Costo por Hora × Total Horas-Esfuerzo
+        const costoTotalProyecto = costoPorHora * totalHorasEsfuerzo;
+        document.getElementById('costoTotalProyecto').value = costoTotalProyecto.toFixed(2);
+    }
+</script>
+{% endblock %}

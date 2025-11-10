@@ -4,13 +4,13 @@
 *.pyc
 __pycache__/
 db.sqlite3
-db.sqlite3-journal  
+db.sqlite3-journal
 identifier.sqlite
 media/
 
 # Archivos de configuración locales (práctica recomendada)
-local_settings.py   
-settings_local.py   
+local_settings.py
+settings_local.py
 
 # Ignorar migraciones, excepto el __init__.py
 **/migrations/
@@ -46,3 +46,20 @@ Pipfile.lock
 # Archivos temporales
 *.swp
 .DS_Store
+Thumbs.db
+
+# Python
+*.pyo
+*.pyd
+.venv/
+ENV/
+
+# Node (si aplica)
+node_modules/
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Base de datos
+*.sqlite3
