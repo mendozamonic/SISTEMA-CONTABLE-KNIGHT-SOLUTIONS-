@@ -18,9 +18,9 @@ class Empleado(models.Model):
     # --- PARÁMETROS ESPECÍFICOS DEL EMPLEADO ---
     dias_laborados_semana = models.IntegerField(help_text="Días que labora a la semana (ej: 5)", null=True, blank=True)
     horas_laboradas_diarias = models.IntegerField(help_text="Horas estándar por día (ej: 8)", null=True, blank=True)
-    dias_vacaciones_anual = models.IntegerField(default=15, help_text="Días de vacaciones pagadas al año", null=True, blank=True)
+    dias_vacaciones_anual = models.IntegerField(help_text="Días de vacaciones pagadas al año", null=True, blank=True)
     recargo_vacaciones = models.DecimalField(max_digits=5, decimal_places=2, help_text="Recargo sobre vacaciones (ej: 0.30)", null=True, blank=True)
-    dias_aguinaldo_anual = models.IntegerField(default=15, help_text="Días de aguinaldo", null=True, blank=True)
+    dias_aguinaldo_anual = models.IntegerField(help_text="Días de aguinaldo", null=True, blank=True)
     eficiencia = models.DecimalField(max_digits=5, decimal_places=2, help_text="Factor de eficiencia (ej: 0.85)", null=True, blank=True)
     
     # --- RESULTADOS CALCULADOS (Se guardan automáticamente) ---
@@ -103,13 +103,6 @@ class Empleado(models.Model):
         is_new_employee = self.pk is None
         print(f"--- Saving Employee: {self.nombre}, New: {is_new_employee}") # <-- ADD THIS
         
-        # Aplicar valores por defecto del modelo para campos que tienen defaults
-        # (Esto es necesario porque los defaults del modelo no se aplican automáticamente en formularios)
-        if self.dias_vacaciones_anual is None:
-            self.dias_vacaciones_anual = 15
-        if self.dias_aguinaldo_anual is None:
-            self.dias_aguinaldo_anual = 15
-        
         if is_new_employee:
             try:
                 self.set_defaults_from_globales()
@@ -184,6 +177,26 @@ class Empleado(models.Model):
              import traceback
              traceback.print_exc()
              self._set_calculated_fields_to_none()
+
+        # Ensure calculated fields are included in update_fields if it exists
+        if 'update_fields' in kwargs:
+            # Get the existing update_fields list
+            update_fields = list(kwargs['update_fields']) if kwargs['update_fields'] else []
+            # Add all calculated fields to ensure they're saved
+            calculated_fields = [
+                'costo_real_hora_ajustado',
+                'salario_bruto_mensual_calculado',
+                'aporte_patronal_isss_mensual',
+                'aporte_patronal_afp_mensual',
+                'deduccion_isss_mensual',
+                'deduccion_afp_mensual',
+                'total_deducciones_mensual',
+                'pago_liquido_mensual'
+            ]
+            for field in calculated_fields:
+                if field not in update_fields:
+                    update_fields.append(field)
+            kwargs['update_fields'] = update_fields
 
         # SIEMPRE guardar el empleado, incluso si hay errores en los cálculos
         super().save(*args, **kwargs) # Guardar en la BD
