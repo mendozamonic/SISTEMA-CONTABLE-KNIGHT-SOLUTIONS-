@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4 col-md-10">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+      <h4 class="mb-0"><i class="bi bi-eye me-2"></i> Detalle del Proyecto</h4>
+      <a href="{% url 'proyectos_lista' %}" class="btn btn-light btn-sm">
+        <i class="bi bi-arrow-left"></i> Volver
+      </a>
+    </div>
+
+    <div class="card-body">
+      <!-- Información general -->
+      <h5 class="fw-bold text-primary">{{ proyecto.nombre }}</h5>
+      <p><b>Cliente:</b> {{ proyecto.cliente }}</p>
+      <p><b>Estado:</b> 
+        {% if proyecto.estado == 'PRE' %}
+          <span class="badge bg-warning text-dark">Presupuesto</span>
+        {% elif proyecto.estado == 'ESP' %}
+          <span class="badge bg-secondary">Esperando Anticipo</span>
+        {% elif proyecto.estado == 'PRO' %}
+          <span class="badge bg-info text-dark">En Proceso</span>
+        {% elif proyecto.estado == 'FAC' %}
+          <span class="badge bg-primary">Facturado</span>
+        {% elif proyecto.estado == 'COM' %}
+          <span class="badge bg-success">Completado</span>
+        {% elif proyecto.estado == 'CAN' %}
+          <span class="badge bg-danger">Cancelado</span>
+        {% endif %}
+      </p>
+
+      <hr>
+
+      <!-- Empleados asignados -->
+      <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-people me-1"></i> Empleados Asignados</h6>
+      <table class="table table-bordered table-hover text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Empleado</th>
+            <th>Costo por Hora ($)</th>
+            <th>Horas Estimadas</th>
+            <th>Costo Total ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in detalle_empleados %}
+          <tr>
+            <td>{{ e.nombre }}</td>
+            <td>${{ e.costo_hora|floatformat:2 }}</td>
+            <td>{{ e.horas|floatformat:2 }}</td>
+            <td class="fw-bold">${{ e.subtotal|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-muted">No hay empleados asignados</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <hr>
+
+      <!-- Resumen financiero -->
+      <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-calculator me-1"></i> Resumen Financiero</h6>
+      <table class="table table-sm">
+        <tbody>
+          <tr><th class="w-50">Costo Total Estimado:</th><td>${{ proyecto.costo_total_estimado|floatformat:2 }}</td></tr>
+          <tr><th>Ganancia (%):</th><td>{{ proyecto.ganancia_porcentaje }}%</td></tr>
+          <tr><th>Precio de Venta:</th><td>${{ proyecto.precio_venta|floatformat:2 }}</td></tr>
+          <tr><th>IVA:</th><td>${{ proyecto.iva|floatformat:2 }}</td></tr>
+          <tr><th>Precio Total con IVA:</th><td>${{ proyecto.precio_total_con_iva|floatformat:2 }}</td></tr>
+          <tr><th>Anticipo (%):</th><td>{{ proyecto.anticipo_porcentaje }}%</td></tr>
+          <tr><th>Anticipo ($):</th><td>${{ proyecto.anticipo|floatformat:2 }}</td></tr>
+          <tr><th>Anticipo Pagado:</th><td>{{ proyecto.anticipo_pagado|yesno:"Sí,No" }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Lista de Proyectos{% endblock %}
+
+{% block content %}
+<div class="container mt-4 col-md-10">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="text-success">
+      <i class="bi bi-folder-fill me-2"></i> Lista de Proyectos
+    </h3>
+    <a href="{% url 'crear_proyecto' %}" class="btn btn-success">
+      <i class="bi bi-plus-circle-fill me-1"></i> Agregar Proyecto
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-success text-white">
+      <h5 class="mb-0">
+        <i class="bi bi-list-ul me-2"></i> Proyectos Registrados
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle mb-0">
+          <thead class="table-success">
+            <tr>
+              <th class="text-center">#</th>
+              <th>Nombre del Proyecto</th>
+              <th>Cliente</th>
+              <th class="text-center">Fecha de Inicio</th>
+              <th class="text-center">Costo Unitario</th>
+              <th class="text-center">Precio de Venta</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for proyecto in proyectos %}
+            <tr>
+              <td class="text-center">{{ forloop.counter }}</td>
+              <td>{{ proyecto.nombre }}</td>
+              <td>{{ proyecto.cliente }}</td>
+              <td class="text-center">{{ proyecto.fecha_inicio|date:"d/m/Y" }}</td>
+              <td class="text-end">
+                {% if proyecto.costo_total_estimado is not None %}
+                  ${{ proyecto.costo_total_estimado|floatformat:2 }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if proyecto.precio_venta is not None %}
+                  ${{ proyecto.precio_venta|floatformat:2 }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-2">
+                  <a href="{% url 'editar_proyecto' proyecto.id %}" 
+                     class="btn btn-warning btn-sm px-3" 
+                     title="Editar">
+                    <i class="bi bi-pencil-square me-1"></i> Editar
+                  </a>
+                  <form method="post" action="{% url 'eliminar_proyecto' proyecto.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="btn btn-danger btn-sm px-3" 
+                            title="Eliminar" 
+                            onclick="return confirm('¿Seguro que deseas eliminar este proyecto?')">
+                      <i class="bi bi-trash3-fill me-1"></i> Eliminar
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                No hay proyectos registrados.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

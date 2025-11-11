@@ -1,0 +1,152 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('✅ Script crear_proyecto inicializado');
+
+    // --------------------- Datos base ---------------------
+    const horasUCPEl = document.getElementById('horas-ucp');
+    const horasUCP = horasUCPEl ? parseFloat(horasUCPEl.textContent) || 0 : 0;
+    const horasRestantesBadge = document.getElementById('horas-restantes-badge');
+    const container = document.getElementById('formset-container');
+    const addBtn = document.getElementById('add-form');
+    const btnGuardar = document.getElementById('btn-guardar');
+
+    // Otras variables monetarias
+    const gananciaInput = document.querySelector('[name="ganancia_porcentaje"]');
+    const anticipoInput = document.querySelector('[name="anticipo_porcentaje"]');
+    const precioVentaDisplay = document.getElementById('precio-venta-display');
+    const costoTotalInput = document.getElementById('costo-total');
+    const ivaInput = document.getElementById('iva');
+    const totalIVAInput = document.getElementById('total-iva');
+    const anticipoMontoInput = document.getElementById('anticipo-monto');
+    const duracionInput = document.getElementById('duracion');
+
+    const empleadosData = JSON.parse('{{ empleados_data|escapejs }}' || '[]');
+    const empleadosMap = {};
+    empleadosData.forEach(e => empleadosMap[e.id] = parseFloat(e.costo_real_hora_ajustado) || 0);
+
+    const tasaIVA = parseFloat('{{ tasa_iva|default:"0.13" }}') || 0.13;
+    const tasaIndirectos = parseFloat('{{ tasa_indirectos|default:"0" }}') || 0;
+
+    // --------------------- Recalcular todo ---------------------
+    function actualizarCalculos() {
+        let totalHoras = 0;
+        let costoTotalProyecto = 0;
+        const usados = {};
+        let hayDuplicado = false;
+
+        container.querySelectorAll('.formset-item').forEach(row => {
+            const empleadoSelect = row.querySelector('select[name*="empleado"]');
+            const horasInput = row.querySelector('input[name*="horas_estimadas"]');
+            const costoDisplay = row.querySelector('.costo-hora-display');
+
+            if (!empleadoSelect || !horasInput) return;
+            const empleadoId = parseInt(empleadoSelect.value);
+            const horas = parseFloat(horasInput.value) || 0;
+
+            if (empleadoId) {
+                // validar duplicados
+                if (usados[empleadoId]) {
+                    hayDuplicado = true;
+                    empleadoSelect.classList.add('is-invalid');
+                } else {
+                    usados[empleadoId] = true;
+                    empleadoSelect.classList.remove('is-invalid');
+                }
+
+                const costoHora = empleadosMap[empleadoId] || 0;
+                if (costoDisplay) costoDisplay.value = `$${costoHora.toFixed(2)}`;
+                const costoEmpleado = horas * (costoHora + tasaIndirectos);
+                totalHoras += horas;
+                costoTotalProyecto += costoEmpleado;
+            } else if (costoDisplay) {
+                costoDisplay.value = '';
+            }
+        });
+
+        // 🔹 Horas restantes
+        const horasRestantes = horasUCP - totalHoras;
+        if (horasRestantesBadge) {
+            horasRestantesBadge.textContent = `Horas sin asignar: ${horasRestantes.toFixed(2)}`;
+            if (horasRestantes < 0) {
+                horasRestantesBadge.className = 'badge bg-danger text-white ms-2';
+            } else if (horasRestantes === 0) {
+                horasRestantesBadge.className = 'badge bg-success text-white ms-2';
+            } else {
+                horasRestantesBadge.className = 'badge bg-warning text-dark ms-2';
+            }
+        }
+
+        // 🔹 Bloquear guardar si hay error
+        btnGuardar.disabled = hayDuplicado || horasRestantes < 0 || totalHoras === 0;
+
+        // 🔹 Duración estimada
+        if (duracionInput) duracionInput.value = (totalHoras / 8).toFixed(1) + ' días';
+
+        // 🔹 Totales monetarios
+        const ganancia = parseFloat(gananciaInput?.value) || 0;
+        const precioVenta = costoTotalProyecto * (1 + ganancia / 100);
+        const iva = precioVenta * tasaIVA;
+        const totalIVA = precioVenta + iva;
+        const anticipoPorc = parseFloat(anticipoInput?.value) || 0;
+        const anticipoMonto = totalIVA * (anticipoPorc / 100);
+
+        costoTotalInput.value = costoTotalProyecto.toFixed(2);
+        precioVentaDisplay.value = precioVenta.toFixed(2);
+        ivaInput.value = iva.toFixed(2);
+        totalIVAInput.value = totalIVA.toFixed(2);
+        anticipoMontoInput.value = anticipoMonto.toFixed(2);
+    }
+
+    // --------------------- Escuchar cambios en horas ---------------------
+    function attachRowListeners(row) {
+        const empleadoSelect = row.querySelector('select[name*="empleado"]');
+        const horasInput = row.querySelector('input[name*="horas_estimadas"]');
+        if (empleadoSelect) empleadoSelect.addEventListener('change', actualizarCalculos);
+        if (horasInput) horasInput.addEventListener('input', actualizarCalculos);
+    }
+
+    // Inicial
+    container.querySelectorAll('.formset-item').forEach(attachRowListeners);
+
+    // --------------------- Agregar fila ---------------------
+    addBtn?.addEventListener('click', function () {
+        const totalForms = document.querySelector('[name$="TOTAL_FORMS"]');
+        if (!totalForms) return;
+        const index = parseInt(totalForms.value);
+        const base = container.querySelector('.formset-item');
+        if (!base) return;
+
+        const clone = base.cloneNode(true);
+        clone.querySelectorAll('input, select').forEach(el => {
+            if (el.name) el.name = el.name.replace(/-\d+-/, '-' + index + '-');
+            if (el.id) el.id = el.id.replace(/-\d+-/, '-' + index + '-');
+            if (!el.classList.contains('costo-hora-display')) el.value = '';
+            el.classList.remove('is-invalid');
+        });
+
+        container.appendChild(clone);
+        totalForms.value = index + 1;
+        attachRowListeners(clone);
+        actualizarCalculos();
+    });
+
+    // --------------------- Eliminar fila ---------------------
+    container.addEventListener('click', e => {
+        const btn = e.target.closest('.remove-row');
+        if (!btn) return;
+        if (container.querySelectorAll('.formset-item').length <= 1) {
+            alert('Debe haber al menos un empleado.');
+            return;
+        }
+        btn.closest('.formset-item').remove();
+        actualizarCalculos();
+    });
+
+    // --------------------- Ganancia / Anticipo ---------------------
+    gananciaInput?.addEventListener('input', actualizarCalculos);
+    anticipoInput?.addEventListener('input', actualizarCalculos);
+
+    // Primera ejecución
+    actualizarCalculos();
+});
+</script>

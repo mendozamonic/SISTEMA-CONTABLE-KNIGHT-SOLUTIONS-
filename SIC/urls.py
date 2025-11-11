@@ -5,6 +5,8 @@ from django.urls import path
 from libromayor import views as libromayor_views
 from estadosfinancieros import views as estados_views
 from empleados import views as empleados_views
+from gestion_ucp import views as ucp_views
+from costos import views as project_views
 
 
 
@@ -44,6 +46,23 @@ urlpatterns = [
     path('empleados/nuevo/', empleados_views.crear_empleado_view, name='crear_empleado'),
     path('empleados/<int:pk>/editar/', empleados_views.editar_empleado_view, name='editar_empleado'),
     path('empleados/<int:pk>/eliminar/', empleados_views.eliminar_empleado_view, name='eliminar_empleado'),
+
+    # --- UCP ---
+    path('ucp/', ucp_views.ucp_view, name='ucp_view'),
+    path('ucp/guardar/', ucp_views.guardar_estimacion_ucp, name='guardar_estimacion_ucp'), # type: ignore
+
+    # ============================================================
+    # 🧱 PROYECTOS / COSTOS
+    # ============================================================
+
+    path('proyectos/', project_views.lista_proyectos, name='proyectos_lista'),
+    path('proyectos/nuevo/', project_views.crear_proyecto, name='proyectos_crear'),
+    path('proyectos/obtener-costo/<int:empleado_id>/', project_views.obtener_costo_empleado, name='obtener_costo_empleado'),
+
+    path('proyectos/<int:pk>/eliminar/', project_views.eliminar_proyecto, name='proyectos_eliminar'),
+    path('proyectos/<int:pk>/pagar_anticipo/', project_views.pagar_anticipo, name='proyectos_pagar_anticipo'),
+    path('proyectos/<int:pk>/pagar_completo/', project_views.pagar_completo, name='proyectos_pagar_completo'),
+    path('proyectos/<int:pk>/mostrar/', project_views.mostrar_proyecto, name='proyectos_mostrar'),
 
 
 ]

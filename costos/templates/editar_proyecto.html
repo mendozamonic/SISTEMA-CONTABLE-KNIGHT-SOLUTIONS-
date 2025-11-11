@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4 col-md-10">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i> Editar Proyecto</h4>
+            <div>
+                <span class="badge bg-info text-dark">
+                    <i class="bi bi-clock-history me-1"></i> Horas del último UCP:
+                    <b id="horas-ucp">{{ horas_ucp }}</b>
+                </span>
+                <span class="badge bg-warning text-dark ms-2" id="horas-restantes-badge">
+                    Horas sin asignar: {{ horas_ucp }}
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="POST" novalidate id="proyectoForm">
+                {% csrf_token %}
+
+                <!-- Datos básicos -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Nombre del Proyecto *</label>
+                        {{ form.nombre }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Cliente *</label>
+                        {{ form.cliente }}
+                    </div>
+                </div>
+
+                <hr>
+                <h5><i class="bi bi-people-fill me-1"></i> Empleados Asignados</h5>
+
+                <div id="formset-container">
+                    {{ formset.management_form }}
+                    {% for subform in formset.forms %}
+                        <div class="row align-items-end formset-item mb-2" data-form-index="{{ forloop.counter0 }}">
+                            <div class="col-md-4">
+                                <label class="form-label">Empleado</label>
+                                {{ subform.empleado }}
+                                {{ subform.id }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Horas Estimadas</label>
+                                {{ subform.horas_estimadas }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Costo/hora</label>
+                                <input type="text" class="form-control costo-hora-display"
+                                       value="$0.00" readonly>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <label class="form-label d-block opacity-0">-</label>
+                                <button type="button" class="btn btn-danger btn-sm remove-row">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            {% if subform.DELETE %}
+                                <div style="display:none;">{{ subform.DELETE }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" id="add-form" class="btn btn-outline-primary btn-sm mt-2">
+                    <i class="bi bi-plus-circle"></i> Agregar Empleado
+                </button>
+
+                <hr>
+
+                <!-- Cálculos automáticos -->
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Ganancia (%) *</label>
+                        {{ form.ganancia_porcentaje }}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Anticipo (%) *</label>
+                        {{ form.anticipo_porcentaje }}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Precio de Venta ($)</label>
+                        <input type="text" id="precio-venta-display" class="form-control bg-light"
+                               readonly value="{{ proyecto.precio_venta|floatformat:2 }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Costo Total ($)</label>
+                        <input type="text" id="costo-total" class="form-control bg-light"
+                               readonly value="{{ proyecto.costo_total_estimado|floatformat:2 }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">IVA ($)</label>
+                        <input type="text" id="iva" class="form-control bg-light"
+                               readonly value="{{ proyecto.iva|floatformat:2 }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Total con IVA ($)</label>
+                        <input type="text" id="total-iva" class="form-control bg-light"
+                               readonly value="{{ proyecto.precio_total_con_iva|floatformat:2 }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Anticipo ($)</label>
+                        <input type="text" id="anticipo-monto" class="form-control bg-light"
+                               readonly value="{{ proyecto.anticipo|floatformat:2 }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Duración Estimada (días)</label>
+                        <input type="text" id="duracion" class="form-control bg-light"
+                               readonly value="{{ proyecto.duracion_estimada.days|default:0 }}">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <a href="{% url 'proyectos_lista' %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Cancelar
+                    </a>
+                    <button type="submit" id="btn-guardar" class="btn btn-success">
+                        <i class="bi bi-save me-1"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🔹 Scripts: exactamente los mismos del formulario de creación -->
+<!-- =============== Script de AJAX COSTO HORA =============== -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // 🔹 Escuchar cualquier cambio en selects de empleado (incluso los nuevos)
+    document.body.addEventListener('change', function(e) {
+        if (e.target.matches('[name$="-empleado"]')) {
+            const select = e.target;
+            const empleadoId = select.value;
+            const row = select.closest('.formset-item');
+            const costoInput = row.querySelector('.costo-hora-display');
+
+            if (empleadoId) {
+                fetch(`/proyectos/obtener-costo/${empleadoId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.costo_hora !== undefined) {
+                            costoInput.value = `$${data.costo_hora.toFixed(2)}`;
+                            console.log(`Empleado seleccionado: ${select.options[select.selectedIndex].text}, costo/hora: ${data.costo_hora.toFixed(2)}`);
+                        } else {
+                            costoInput.value = 'Error';
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        costoInput.value = 'Error';
+                    });
+            } else {
+                costoInput.value = '';
+            }
+        }
+    });
+
+});
+</script>
+
+
+<!-- =============== Script de Imprimir horas =============== -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // 🔹 Variables globales
+    let costoTotalProyecto = 0;
+    const horasUCP = parseFloat(document.getElementById('horas-ucp').textContent) || 0;
+    const tasaIndirectos = parseFloat('{{ tasa_indirectos|default:0 }}') || 0;
+    const tasaIVA = parseFloat('{{ tasa_iva|default:0 }}') || 0;
+    const badgeHorasRestantes = document.getElementById('horas-restantes-badge');
+    const inputGanancia = document.querySelector('[name="ganancia_porcentaje"]');
+    const inputAnticipo = document.querySelector('[name="anticipo_porcentaje"]');
+    const inputPrecioVenta = document.getElementById('precio-venta-display');
+    const inputCostoTotal = document.getElementById('costo-total');
+    const inputIVA = document.getElementById('iva');
+    const inputTotalIVA = document.getElementById('total-iva');
+    const inputAnticipoMonto = document.getElementById('anticipo-monto');
+    const inputDuracion = document.getElementById('duracion'); // 👈 nuevo
+
+    // 🔹 Función auxiliar: obtener costo/hora
+    function obtenerCosto(row) {
+        const costoInput = row.querySelector('.costo-hora-display');
+        if (!costoInput) return 0;
+        const valor = costoInput.value.replace('$', '').trim();
+        return parseFloat(valor) || 0;
+    }
+
+    // 🔹 Calcular total de horas asignadas
+    function calcularHorasAsignadas() {
+        let totalHoras = 0;
+        document.querySelectorAll('.formset-item').forEach(row => {
+            const horas = parseFloat(row.querySelector('[name$="-horas_estimadas"]')?.value) || 0;
+            totalHoras += horas;
+        });
+        return totalHoras;
+    }
+
+    // 🔹 Calcular costo total (empleados + indirectos)
+    function calcularCostoTotalProyecto() {
+        let totalEmpleados = 0;
+        let totalHoras = 0;
+
+        document.querySelectorAll('.formset-item').forEach(row => {
+            const horas = parseFloat(row.querySelector('[name$="-horas_estimadas"]')?.value) || 0;
+            const costo = obtenerCosto(row);
+            totalEmpleados += horas * costo;
+            totalHoras += horas;
+        });
+
+        const costoIndirectos = totalHoras * tasaIndirectos;
+        const totalProyecto = totalEmpleados + costoIndirectos;
+
+        return { totalProyecto, totalEmpleados, costoIndirectos, totalHoras };
+    }
+
+    // 🔹 Calcular IVA y Total con IVA
+    function actualizarIVA(precioVenta) {
+        const iva = precioVenta * tasaIVA;
+        const totalIVA = precioVenta + iva;
+        inputIVA.value = iva.toFixed(2);
+        inputTotalIVA.value = totalIVA.toFixed(2);
+        actualizarAnticipo(totalIVA);
+    }
+
+    // 🔹 Calcular anticipo ($)
+    function actualizarAnticipo(totalIVA) {
+        const anticipoPorcentaje = parseFloat(inputAnticipo?.value) || 0;
+        const anticipoMonto = totalIVA * (anticipoPorcentaje / 100);
+        inputAnticipoMonto.value = anticipoMonto.toFixed(2);
+        return anticipoMonto;
+    }
+
+    // 🔹 Calcular duración estimada (en días)
+    function actualizarDuracion(totalHoras) {
+        const duracionDias = totalHoras / 8; // 8 horas por día
+        const duracionTexto = `${Math.ceil(duracionDias)}`;
+        inputDuracion.value = duracionTexto;
+        console.log(`🕓 Duración estimada: ${duracionTexto}`);
+    }
+
+    // 🔹 Calcular precio de venta sin IVA
+    function actualizarPrecioVenta() {
+        const ganancia = parseFloat(inputGanancia?.value) || 0;
+        const precioVenta = costoTotalProyecto / ( ganancia / 100);
+        inputPrecioVenta.value = precioVenta.toFixed(2);
+        actualizarIVA(precioVenta);
+        return precioVenta;
+    }
+
+    // 🔹 Actualizar totales generales
+    function actualizarTotales() {
+        const { totalProyecto, totalEmpleados, costoIndirectos, totalHoras } = calcularCostoTotalProyecto();
+        const horasRestantes = horasUCP - totalHoras;
+
+        costoTotalProyecto = totalProyecto;
+        inputCostoTotal.value = totalProyecto.toFixed(2);
+
+        // Badge de horas restantes
+        badgeHorasRestantes.textContent = `Horas sin asignar: ${horasRestantes}`;
+        if (horasRestantes < 0) {
+            badgeHorasRestantes.classList.remove('bg-warning', 'text-dark');
+            badgeHorasRestantes.classList.add('bg-danger', 'text-white');
+        } else {
+            badgeHorasRestantes.classList.remove('bg-danger', 'text-white');
+            badgeHorasRestantes.classList.add('bg-warning', 'text-dark');
+        }
+
+        // 🔸 Recalcular derivados
+        actualizarDuracion(totalHoras);
+        actualizarPrecioVenta();
+    }
+
+    // 🔹 Validar horas máximas
+    function validarHorasMaximas(input) {
+        const valorIngresado = parseFloat(input.value) || 0;
+        const totalAntes = calcularHorasAsignadas() - valorIngresado;
+        const disponible = horasUCP - totalAntes;
+
+        if (valorIngresado > disponible) {
+            input.value = disponible > 0 ? disponible.toFixed(2) : 0;
+            alert(`⚠️ No puedes asignar más de ${horasUCP} horas en total.\nHoras disponibles: ${disponible.toFixed(2)}`);
+        }
+    }
+
+    // 🔹 Evento: cambio en horas estimadas
+    document.body.addEventListener('input', function(e) {
+        if (e.target.matches('[name$="-horas_estimadas"]')) {
+            validarHorasMaximas(e.target);
+            actualizarTotales();
+        }
+    });
+
+    // 🔹 Evento: cambio en empleado
+    document.body.addEventListener('change', function(e) {
+        if (e.target.matches('[name$="-empleado"]')) {
+            const select = e.target;
+            const empleadoId = select.value;
+            const row = select.closest('.formset-item');
+            const costoInput = row.querySelector('.costo-hora-display');
+
+            if (empleadoId) {
+                fetch(`/proyectos/obtener-costo/${empleadoId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.costo_hora !== undefined) {
+                            costoInput.value = `$${data.costo_hora.toFixed(2)}`;
+                            actualizarTotales();
+                        } else {
+                            costoInput.value = 'Error';
+                        }
+                    })
+                    .catch(() => {
+                        costoInput.value = 'Error';
+                    });
+            } else {
+                costoInput.value = '';
+                actualizarTotales();
+            }
+        }
+    });
+
+    // 🔹 Evento: cambio en ganancia (%)
+    inputGanancia?.addEventListener('input', actualizarPrecioVenta);
+
+    // 🔹 Evento: cambio en anticipo (%)
+    inputAnticipo?.addEventListener('input', function() {
+        const totalIVA = parseFloat(inputTotalIVA.value) || 0;
+        actualizarAnticipo(totalIVA);
+    });
+
+});
+</script>
+
+
+
+
+
+<!-- =============== Script de Agregar empleados =============== -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    const formsetContainer = document.getElementById('formset-container');
+    const addBtn = document.getElementById('add-form');
+    const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+
+    // 🔹 Actualiza índices después de agregar/eliminar filas
+    function actualizarIndices() {
+        const forms = formsetContainer.querySelectorAll('.formset-item');
+        forms.forEach((form, index) => {
+            form.dataset.formIndex = index;
+            form.querySelectorAll('input, select, textarea').forEach(el => {
+                if (el.name) el.name = el.name.replace(/form-\d+-/, `form-${index}-`);
+                if (el.id) el.id = el.id.replace(/id_form-\d+-/, `id_form-${index}-`);
+            });
+        });
+        totalForms.value = forms.length;
+    }
+
+    // 🔹 Actualiza las opciones disponibles (para prevenir duplicados)
+    function actualizarOpcionesSelects() {
+        const selects = formsetContainer.querySelectorAll('[name$="-empleado"]');
+        const seleccionados = Array.from(selects)
+            .map(s => s.value)
+            .filter(v => v !== "");
+
+        selects.forEach(select => {
+            const valorActual = select.value;
+            select.querySelectorAll('option').forEach(opt => {
+                if (opt.value && opt.value !== valorActual && seleccionados.includes(opt.value)) {
+                    opt.disabled = true;
+                } else {
+                    opt.disabled = false;
+                }
+            });
+        });
+    }
+
+    // 🔹 Agregar una nueva fila
+    addBtn.addEventListener('click', function() {
+        const forms = formsetContainer.querySelectorAll('.formset-item');
+        const lastForm = forms[forms.length - 1];
+        const newForm = lastForm.cloneNode(true);
+
+        // Limpiar valores
+        newForm.querySelectorAll('input, select').forEach(el => {
+            if (el.type === 'select-one') el.selectedIndex = 0;
+            else if (['text', 'number'].includes(el.type)) el.value = '';
+        });
+
+        // Quitar marca DELETE si existe
+        const deleteInput = newForm.querySelector('input[name$="DELETE"]');
+        if (deleteInput) deleteInput.checked = false;
+
+        formsetContainer.appendChild(newForm);
+        actualizarIndices();
+        actualizarOpcionesSelects();
+        console.log('👷‍♂️ Nueva fila agregada');
+    });
+
+    // 🔹 Eliminar fila (dejando al menos una)
+    formsetContainer.addEventListener('click', function(e) {
+        const btn = e.target.closest('.remove-row');
+        if (btn) {
+            const forms = Array.from(formsetContainer.querySelectorAll('.formset-item'));
+            if (forms.length <= 1) {
+                alert('Debe haber al menos un empleado asignado.');
+                return;
+            }
+
+            const row = btn.closest('.formset-item');
+            const deleteInput = row.querySelector('input[name$="DELETE"]');
+            if (deleteInput) deleteInput.checked = true;
+
+            row.remove(); // eliminar directamente del DOM
+            actualizarIndices();
+            actualizarOpcionesSelects();
+            actualizarTotales(); // 🔁 recalcular horas y totales
+            console.log('❌ Empleado eliminado');
+        }
+    });
+
+    // 🔹 Cada vez que cambia un select de empleado
+    formsetContainer.addEventListener('change', function(e) {
+        if (e.target.matches('[name$="-empleado"]')) {
+            actualizarOpcionesSelects();
+        }
+    });
+
+    // 🔹 Inicializar opciones al cargar
+    actualizarOpcionesSelects();
+});
+</script>
+
+<!-- =============== Script de guardado =============== -->
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('proyectoForm');
+    const badgeHoras = document.getElementById('horas-restantes-badge');
+
+    form.addEventListener('submit', function(event) {
+        // Extraer número de horas restantes del badge
+        const texto = badgeHoras.textContent || '';
+        const match = texto.match(/(-?\d+(\.\d+)?)/); // Busca un número en el texto
+        const horasRestantes = match ? parseFloat(match[0]) : 0;
+
+        if (horasRestantes !== 0) {
+            event.preventDefault(); // ❌ Detener envío
+            alert('⚠️ No puedes guardar el proyecto.\nDebes asignar exactamente todas las horas del UCP (Horas sin asignar = 0).');
+        }
+    });
+});
+</script>
+
+
+
+{% endblock %}

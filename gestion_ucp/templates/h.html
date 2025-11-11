@@ -59,6 +59,9 @@
 
 <div class="container-fluid" style="max-width: 1200px; margin: 0 auto;">
     <h1 class="page-title">Método de Estimación de Costos 'UCP'</h1>
+
+<div class="container-fluid" style="max-width: 1200px; margin: 0 auto;">
+    <h1 class="page-title">Método de Estimación de Costos 'UCP'</h1>
     
     <!-- Sección 1: Clasificación de actores sin ajuste -->
     <div class="mb-4">
@@ -718,7 +721,9 @@
     <!-- Sección 9: Cálculo del Esfuerzo -->
     <div class="mb-4">
         <div class="section-header">Cálculo del Esfuerzo </div>
-        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">            
+        <div class="p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+            <p><strong>La propuesta consiste en utilizar los EF para estimar el esfuerzo individual de cada miembro del equipo de trabajo.</strong></p>
+            
             <!-- Conteo de factores -->
             <div class="mb-3">
                 <h6>Conteo de Factores Ambientales:</h6>
@@ -746,7 +751,32 @@
                 </table>
             </div>
             
-
+            <!-- Tabla de conversión CF -->
+            <div class="mb-3">
+                <h6>Factor de Conversión Horas-Persona/UCP:</h6>
+                <table class="table table-bordered" style="max-width: 600px;">
+                    <thead>
+                        <tr>
+                            <th>HORAS-PERSONA (CF)</th>
+                            <th>INTERVALO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>20</td>
+                            <td>≤ 2</td>
+                        </tr>
+                        <tr>
+                            <td>28</td>
+                            <td>3 - 4</td>
+                        </tr>
+                        <tr>
+                            <td>36</td>
+                            <td>≥ 5</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             
             <!-- Cálculo del esfuerzo -->
             <div class="mb-3">
@@ -772,6 +802,26 @@
                 </table>
             </div>
             
+            <!-- Esfuerzo por persona -->
+            <div class="mb-3">
+                <h6>Esfuerzo Horas por Persona:</h6>
+                <table class="table table-bordered" style="max-width: 800px;">
+                    <thead>
+                        <tr>
+                            <th>Esfuerzo Total (Horas-Persona)</th>
+                            <th>Número de Personas</th>
+                            <th>Esfuerzo por Persona (Horas)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="esfuerzoTotalPersona" value="0" readonly></td>
+                            <td><input type="number" class="form-control form-control-sm" id="numeroPersonas" value="1" min="1" onchange="calcularEsfuerzoPorPersona()"></td>
+                            <td><input type="text" class="form-control form-control-sm readonly-field" id="esfuerzoPorPersona" value="0" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     
@@ -812,28 +862,18 @@
                         <td><strong>Total Horas-Esfuerzo</strong></td>
                         <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="resumenEsfuerzoTotal" value="0" readonly></td>
                     </tr>
-     
+                    <tr>
+                        <td><strong>Número de Personas</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field" id="resumenNumPersonas" value="1" readonly></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Horas-Persona</strong></td>
+                        <td><input type="text" class="form-control form-control-sm readonly-field fw-bold" id="resumenHorasPersona" value="0" readonly></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <form method="POST" action="{% url 'guardar_estimacion_ucp' %}">
-    {% csrf_token %}
-    <div class="mt-4 p-3 border rounded" style="background-color: #f8f9fa;">
-        <div class="mb-3">
-            <label for="nombre" class="form-label fw-bold">Nombre de la estimación:</label>
-            <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ej: Proyecto ERP" required>
-        </div>
-        <input type="hidden" id="input_horas_totales" name="horas_totales">
-        <div class="text-center">
-            <button type="submit" class="btn btn-success btn-lg">
-                <i class="bi bi-save me-2"></i> Guardar Estimación
-            </button>
-        </div>
-    </div>
-</form>
-
 </div>
 
 <script>
@@ -861,10 +901,12 @@
         const row = input.closest('tr');
         const transacciones = parseFloat(input.value) || 0;
         const tipoInput = row.querySelector('.tipo-caso-uso');
+
         let tipo = '';
         if (transacciones >= 1 && transacciones <= 3) tipo = 'Simple';
         else if (transacciones >= 4 && transacciones <= 7) tipo = 'Medio';
         else if (transacciones >= 8) tipo = 'Complejo';
+
         tipoInput.value = tipo;
         calcularCasosUso();
     }
@@ -1049,15 +1091,26 @@
         document.getElementById('esfuerzoValue').value = esfuerzo.toFixed(2);
         document.getElementById('resumenCF').value = cf;
         document.getElementById('resumenEsfuerzoTotal').value = esfuerzo.toFixed(2);
+        document.getElementById('esfuerzoTotalPersona').value = esfuerzo.toFixed(2);
+
+        calcularEsfuerzoPorPersona();
     }
 
-    document.querySelector('form').addEventListener('submit', function() {
-    const total = document.getElementById('resumenEsfuerzoTotal').value || 0;
-    document.getElementById('input_horas_totales').value = total;
-});
+    // Esfuerzo por persona
+    function calcularEsfuerzoPorPersona() {
+        const esfuerzoTotal = parseFloat(document.getElementById('esfuerzoTotalPersona').value) || 0;
+        const numeroPersonas = parseFloat(document.getElementById('numeroPersonas').value) || 1;
 
+        if (numeroPersonas === 0) {
+            document.getElementById('esfuerzoPorPersona').value = '0.00';
+            return;
+        }
 
+        const esfuerzoPorPersona = esfuerzoTotal / numeroPersonas;
+        document.getElementById('esfuerzoPorPersona').value = esfuerzoPorPersona.toFixed(2);
+        document.getElementById('resumenNumPersonas').value = numeroPersonas;
+        document.getElementById('resumenHorasPersona').value = esfuerzoPorPersona.toFixed(2);
+    }
 </script>
-
 
 {% endblock %}

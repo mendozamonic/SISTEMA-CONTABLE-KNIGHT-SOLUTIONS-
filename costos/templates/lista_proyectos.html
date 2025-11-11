@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <!-- ENCABEZADO -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="fw-bold text-dark mb-0">
+      <i class="bi bi-folder2-open me-2"></i> Gestión de Proyectos
+    </h3>
+    <a href="{% url 'proyectos_crear' %}" class="btn btn-success">
+      <i class="bi bi-plus-circle me-1"></i> Nuevo Proyecto
+    </a>
+  </div>
+
+  <!-- 🧾 COTIZACIONES -->
+  <h4 class="text-secondary mb-2">
+    <i class="bi bi-file-earmark-text me-1"></i> Cotizaciones
+  </h4>
+  <table class="table table-bordered table-hover align-middle text-center">
+    <thead class="table-light">
+      <tr>
+        <th>Nombre</th>
+        <th>Cliente</th>
+        <th>Total + IVA</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in cotizaciones %}
+        <tr>
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ p.precio_total_con_iva|floatformat:2 }}</td>
+          <td>
+            <div class="btn-group" role="group">
+              <!-- ❌ Eliminar -->
+              <a href="{% url 'proyectos_eliminar' p.id %}" 
+                 class="btn btn-danger btn-sm"
+                 title="Eliminar cotización"
+                 onclick="return confirm('¿Seguro que deseas eliminar esta cotización?');">
+                <i class="bi bi-trash"></i>
+              </a>
+
+              <!-- 💰 Pagar anticipo -->
+              <a href="{% url 'proyectos_pagar_anticipo' p.id %}"
+                 class="btn btn-success btn-sm {% if p.anticipo_pagado %}disabled{% endif %}"
+                 title="Registrar pago de anticipo">
+                <i class="bi bi-cash-stack"></i>
+              </a>
+
+              <!-- 👁️ Mostrar -->
+              <a href="{% url 'proyectos_mostrar' p.id %}"
+                 class="btn btn-dark btn-sm"
+                 title="Mostrar detalles">
+                <i class="bi bi-eye"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center text-muted">No hay cotizaciones registradas</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ⚙️ PROYECTOS EN PROCESO -->
+  <h4 class="text-secondary mt-4 mb-2">
+    <i class="bi bi-gear-fill me-1"></i> Proyectos en Proceso
+  </h4>
+  <table class="table table-bordered table-hover align-middle text-center">
+    <thead class="table-light">
+      <tr>
+        <th>Nombre</th>
+        <th>Cliente</th>
+        <th>Anticipo</th>
+        <th>Total + IVA</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in proyectos %}
+        {% if p.estado == 'PRO' %}
+        <tr>
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ p.anticipo|floatformat:2 }}</td>
+          <td>${{ p.precio_total_con_iva|floatformat:2 }}</td>
+          <td>
+            <div class="btn-group" role="group">
+              <!-- 💰 Solo se permite pagar completo -->
+              {% if not p.completo_pagado %}
+                <a href="{% url 'proyectos_pagar_completo' p.id %}" 
+                   class="btn btn-primary btn-sm" title="Registrar pago completo">
+                  <i class="bi bi-cash-coin"></i>
+                </a>
+              {% endif %}
+
+              <!-- 👁️ Mostrar -->
+              <a href="{% url 'proyectos_mostrar' p.id %}" 
+                 class="btn btn-dark btn-sm" title="Ver detalles">
+                <i class="bi bi-eye"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted">No hay proyectos activos</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- ✅ PROYECTOS CANCELADOS -->
+  <h4 class="text-secondary mt-4 mb-2">
+    <i class="bi bi-check2-circle me-1"></i> Proyectos Cancelados
+  </h4>
+  <table class="table table-bordered table-hover align-middle text-center">
+    <thead class="table-light">
+      <tr>
+        <th>Nombre</th>
+        <th>Cliente</th>
+        <th>Total + IVA</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in proyectos %}
+        {% if p.estado == 'CAN' %}
+        <tr class="table-success">
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.cliente }}</td>
+          <td>${{ p.precio_total_con_iva|floatformat:2 }}</td>
+          <td>
+            <a href="{% url 'proyectos_mostrar' p.id %}" 
+               class="btn btn-dark btn-sm" title="Ver detalles">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endif %}
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted">No hay proyectos cancelados</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
