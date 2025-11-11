@@ -220,11 +220,12 @@ def pagar_completo(request, pk):
 
         # Mitad en caja y mitad en banco
         mitad = (pendiente / Decimal('2')).quantize(Decimal('0.01'))
+        mitad2 = pendiente - mitad
 
         # 🔹 Registrar asiento contable
         DetalleAsiento.objects.bulk_create([
             DetalleAsiento(asiento=asiento, cuenta=cuenta_caja, debe=mitad),
-            DetalleAsiento(asiento=asiento, cuenta=cuenta_banco, debe=mitad),
+            DetalleAsiento(asiento=asiento, cuenta=cuenta_banco, debe=mitad2),
             DetalleAsiento(asiento=asiento, cuenta=cuenta_clientes, haber=pendiente),
         ])
 
